@@ -111,6 +111,14 @@ class DMC:
         'is_terminal': gym.spaces.Box(0, 1, (), dtype=np.bool),
     }
     for key, value in self._env.observation_spec().items():
+      '''
+      _env.observation_spec().items() returns that:
+      key: position, value: Array(shape=(4,), dtype=dtype('float64'), name='position')
+      key: velocity, value: Array(shape=(3,), dtype=dtype('float64'), name='velocity')
+      key: touch, value: Array(shape=(2,), dtype=dtype('float64'), name='touch')
+      key: target_position, value: Array(shape=(2,), dtype=dtype('float64'), name='target_position')
+      key: dist_to_target, value: Array(shape=(), dtype=dtype('float64'), name='dist_to_target')
+      '''
       if key in self._ignored_keys:
         continue
       if value.dtype == np.float64:

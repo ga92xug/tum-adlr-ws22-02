@@ -81,16 +81,27 @@ class Agent(common.Module):
 class WorldModel(common.Module):
 
   def __init__(self, config, obs_space, tfstep):
-    ''' shapes
-    {'image': (64, 64, 3),
-    'reward': (),
-    'is_first': (),
-    'is_last': (),
-    'is_terminal': ()}
-    '''
-    shapes = {k: tuple(v.shape) for k, v in obs_space.items()}
+    ''' 
+    proprio
     print(f'WorldModel shapes: {shapes}')
     print(f'WorldModel config.encoder: {config.encoder}')
+
+    shapes
+    shapes: {'image': (64, 64, 3), 'reward': (), 'is_first': (), 
+    'is_last': (), 'is_terminal': (), 'position': (4,), 'velocity': (3,), 
+    'touch': (2,), 'target_position': (2,), 'dist_to_target': ()}
+
+    config.encoder: 
+    Config:
+    mlp_keys:     .*                    (str)
+    cnn_keys:     $^                    (str)
+    act:          elu                   (str)
+    norm:         none                  (str)
+    cnn_depth:    48                    (int)
+    cnn_kernels:  [4, 4, 4, 4]          (ints)
+    mlp_layers:   [400, 400, 400, 400]  (ints)
+    '''
+    shapes = {k: tuple(v.shape) for k, v in obs_space.items()}
     self.config = config
     self.tfstep = tfstep
     self.rssm = common.EnsembleRSSM(**config.rssm)

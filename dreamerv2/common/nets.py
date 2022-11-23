@@ -181,7 +181,11 @@ class EnsembleRSSM(common.Module):
 
 
 class Encoder(common.Module):
-
+  '''proprio:
+  encoder: {mlp_keys: '.*', cnn_keys: '$^'}
+  Encoder CNN inputs: []
+  Encoder MLP inputs: ['position', 'velocity', 'touch', 'target_position']
+  '''
   def __init__(
       self, shapes, cnn_keys=r'.*', mlp_keys=r'.*', act='elu', norm='none',
       cnn_depth=48, cnn_kernels=(4, 4, 4, 4), mlp_layers=[400, 400, 400, 400]):
