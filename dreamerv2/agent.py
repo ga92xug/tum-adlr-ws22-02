@@ -81,7 +81,16 @@ class Agent(common.Module):
 class WorldModel(common.Module):
 
   def __init__(self, config, obs_space, tfstep):
+    ''' shapes
+    {'image': (64, 64, 3),
+    'reward': (),
+    'is_first': (),
+    'is_last': (),
+    'is_terminal': ()}
+    '''
     shapes = {k: tuple(v.shape) for k, v in obs_space.items()}
+    print(f'WorldModel shapes: {shapes}')
+    print(f'WorldModel config.encoder: {config.encoder}')
     self.config = config
     self.tfstep = tfstep
     self.rssm = common.EnsembleRSSM(**config.rssm)
