@@ -38,8 +38,11 @@ def main():
   config = common.Flags(config).parse(remaining)
 
   logdir = pathlib.Path(config.logdir).expanduser()
+  # easier download from gcloud
+  logdir_downloads = pathlib.Path(config.logdir + "/downloads").expanduser()
+  logdir_downloads.mkdir(parents=True, exist_ok=True)
   logdir.mkdir(parents=True, exist_ok=True)
-  config.save(logdir / 'config.yaml')
+  config.save(logdir_downloads / 'config.yaml')
   print(config, '\n')
   print('Logdir', logdir)
 
