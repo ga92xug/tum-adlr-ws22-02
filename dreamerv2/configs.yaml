@@ -2,7 +2,7 @@ defaults:
 
   # Train Script
   logdir: /dev/null
-  seed: 0
+  seed: 1
   task: dmc_walker_walk
   envs: 1
   envs_parallel: none
