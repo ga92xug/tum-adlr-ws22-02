@@ -86,7 +86,7 @@ class TerminalOutput:
 class JSONLOutput:
 
   def __init__(self, logdir):
-    self._logdir_downloads = pathlib.Path(logdir + "/downloads").expanduser()
+    self._logdir_downloads = pathlib.Path(logdir).expanduser() / 'downloads'
     self._logdir = pathlib.Path(logdir).expanduser()
 
   def __call__(self, summaries):
@@ -101,7 +101,8 @@ class TensorBoardOutput:
   def __init__(self, logdir, fps=20):
     # The TensorFlow summary writer supports file protocols like gs://. We use
     # os.path over pathlib here to preserve those prefixes.
-    self._logdir_downloads = os.path.expanduser(logdir + "/downloads")
+    self._logdir_downloads = os.path.join(logdir, 'downloads')
+    self._logdir_downloads = os.path.expanduser(self._logdir_downloads)
     self._logdir = os.path.expanduser(logdir)
     self._writer = None
     self._fps = fps
