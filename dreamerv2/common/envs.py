@@ -7,6 +7,7 @@ import traceback
 import cloudpickle
 import gym
 import numpy as np
+import warnings
 
 
 class GymWrapper:
@@ -109,6 +110,9 @@ class DMC:
         'is_first': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'is_last': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'is_terminal': gym.spaces.Box(0, 1, (), dtype=np.bool),
+        # this might be wrong
+        'contacts': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
+        'contact_forces': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32)
     }
     for key, value in self._env.observation_spec().items():
       '''
@@ -138,11 +142,48 @@ class DMC:
   def step(self, action):
     assert np.isfinite(action['action']).all(), action['action']
     reward = 0.0
-    for _ in range(self._action_repeat):
+    contacts = 0
+    contact_forces_over_action_repeat = []
+    
+    for i in range(self._action_repeat):
       time_step = self._env.step(action['action'])
       reward += time_step.reward or 0.0
+
+      sim = self._env.physics
+      ncon = sim.data.ncon
+      contact_forces = [] 
+      if ncon > 0:
+        contacts += ncon
+        for j in range(ncon):
+          force_vector = sim.data.contact_force(j)[0] # no torque
+          # some contacts have zero force, so we filter them out
+          if not np.array_equal(np.zeros([3]), force_vector):
+            contact_forces.append(force_vector)
+        
+      contact_forces_over_action_repeat.append(np.array(
+          contact_forces).flatten())
+
+      # [[contact_forces], [contact_forces]]
+      # contact_forces might be empty
+      # contacts might be larger than contact forces 
+          
       if time_step.last():
         break
+    # this steps breaks for action repeat != 2 -> for loop
+    #print('contact_forces_over_action_repeat 0', contact_forces_over_action_repeat[0])
+    #print('contact_forces_over_action_repeat 0', contact_forces_over_action_repeat[0])
+    
+    contact_forces_over_action_repeat = np.concatenate(
+        (contact_forces_over_action_repeat[0], 
+        contact_forces_over_action_repeat[1]))
+    
+    if len(contact_forces_over_action_repeat) == 0:
+      contact_forces_over_action_repeat = 0.0
+    else:
+      contact_forces_over_action_repeat = float(np.mean(
+        contact_forces_over_action_repeat))
+      
+    
     assert time_step.discount in (0, 1)
     obs = {
         'reward': reward,
@@ -150,6 +191,8 @@ class DMC:
         'is_last': time_step.last(),
         'is_terminal': time_step.discount == 0,
         'image': self._env.physics.render(*self._size, camera_id=self._camera),
+        'contacts': contacts,
+        'contact_forces': contact_forces_over_action_repeat,
     }
     obs.update({
         k: v for k, v in dict(time_step.observation).items()
@@ -164,6 +207,8 @@ class DMC:
         'is_last': False,
         'is_terminal': False,
         'image': self._env.physics.render(*self._size, camera_id=self._camera),
+        'contacts': 0,
+        'contact_forces': 0,
     }
     obs.update({
         k: v for k, v in dict(time_step.observation).items()

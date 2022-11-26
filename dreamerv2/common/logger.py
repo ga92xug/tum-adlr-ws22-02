@@ -86,13 +86,12 @@ class TerminalOutput:
 class JSONLOutput:
 
   def __init__(self, logdir):
-    self._logdir_downloads = pathlib.Path(logdir).expanduser() / 'downloads'
     self._logdir = pathlib.Path(logdir).expanduser()
 
   def __call__(self, summaries):
     scalars = {k: float(v) for _, k, v in summaries if len(v.shape) == 0}
     step = max(s for s, _, _, in summaries)
-    with (self._logdir_downloads / 'metrics.jsonl').open('a') as f:
+    with (self._logdir / 'metrics.jsonl').open('a') as f:
       f.write(json.dumps({'step': step, **scalars}) + '\n')
 
 
@@ -101,8 +100,6 @@ class TensorBoardOutput:
   def __init__(self, logdir, fps=20):
     # The TensorFlow summary writer supports file protocols like gs://. We use
     # os.path over pathlib here to preserve those prefixes.
-    self._logdir_downloads = os.path.join(logdir, 'downloads')
-    self._logdir_downloads = os.path.expanduser(self._logdir_downloads)
     self._logdir = os.path.expanduser(logdir)
     self._writer = None
     self._fps = fps
@@ -126,7 +123,7 @@ class TensorBoardOutput:
     if not self._writer:
       import tensorflow as tf
       self._writer = tf.summary.create_file_writer(
-          self._logdir_downloads, max_queue=1000)
+          self._logdir, max_queue=1000)
 
   def _video_summary(self, name, video, step):
     import tensorflow as tf
