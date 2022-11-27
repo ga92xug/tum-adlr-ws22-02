@@ -169,10 +169,7 @@ class DMC:
           
       if time_step.last():
         break
-    # this steps breaks for action repeat != 2 -> for loop
-    #print('contact_forces_over_action_repeat 0', contact_forces_over_action_repeat[0])
-    #print('contact_forces_over_action_repeat 0', contact_forces_over_action_repeat[0])
-    
+    # this steps breaks for action repeat != 2 -> for loop    
     contact_forces_over_action_repeat = np.concatenate(
         (contact_forces_over_action_repeat[0], 
         contact_forces_over_action_repeat[1]))
@@ -182,7 +179,6 @@ class DMC:
     else:
       contact_forces_over_action_repeat = float(np.mean(
         contact_forces_over_action_repeat))
-      
     
     assert time_step.discount in (0, 1)
     obs = {
