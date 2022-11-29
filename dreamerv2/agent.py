@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras import mixed_precision as prec
+from tensorflow_probability import distributions as tfd
 
 import common
 import expl
@@ -42,8 +43,14 @@ class Agent(common.Module):
       action = actor.mode()
       noise = self.config.eval_noise
     elif mode == 'explore':
-      actor = self._expl_behavior.actor(feat)
-      action = actor.sample()
+      # actor = self._expl_behavior.actor(feat)
+      # action = actor.sample()
+      # print('agent action', action)
+      # make random actions 
+      dist = tfd.Uniform(self.act_space.low, self.act_space.high)
+      self._dist = tfd.Independent(dist, 1)
+      action = self._dist.sample(len(obs['is_first']))
+      # print('random action', action)
       noise = self.config.expl_noise
     elif mode == 'train':
       actor = self._task_behavior.actor(feat)

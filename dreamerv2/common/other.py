@@ -192,7 +192,7 @@ class Timer:
 
 
 class CarryOverState:
-
+  # fn = agent.train() 
   def __init__(self, fn):
     self._fn = fn
     self._state = None
