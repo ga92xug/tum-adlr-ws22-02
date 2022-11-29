@@ -72,6 +72,8 @@ class GymWrapper:
 
 class DMC:
   # check suite.ALL_TASKS to see matching domains with tasks
+  # For stacker stack_2:
+    # observations: (arm_pos, arm_vel, touch, hand_pos, box_pos, box_vel, target_pos)
   def __init__(self, name, action_repeat=1, size=(64, 64), camera=None):
     os.environ['MUJOCO_GL'] = 'egl'
     domain, task = name.split('_', 1)
@@ -97,6 +99,7 @@ class DMC:
     self._camera = camera
     self._ignored_keys = []
     for key, value in self._env.observation_spec().items():
+      print("possible observations:\n")
       print(key)
       if value.shape == (0,):
         print(f"Ignoring empty observation key '{key}'.")
