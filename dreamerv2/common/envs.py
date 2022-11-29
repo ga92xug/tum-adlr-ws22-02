@@ -71,10 +71,9 @@ class GymWrapper:
 
 
 class DMC:
-
+  # check suite.ALL_TASKS to see matching domains with tasks
   def __init__(self, name, action_repeat=1, size=(64, 64), camera=None):
     os.environ['MUJOCO_GL'] = 'egl'
-    print(name)
     domain, task = name.split('_', 1)
     if domain == 'cup':  # Only domain with multiple words.
       domain = 'ball_in_cup'
@@ -98,6 +97,7 @@ class DMC:
     self._camera = camera
     self._ignored_keys = []
     for key, value in self._env.observation_spec().items():
+      print(key)
       if value.shape == (0,):
         print(f"Ignoring empty observation key '{key}'.")
         self._ignored_keys.append(key)
