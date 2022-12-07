@@ -211,14 +211,11 @@ class Encoder(common.Module):
     if self.mlp_keys:
       outputs.append(self._mlp({k: data[k] for k in self.mlp_keys}))
     output = tf.concat(outputs, -1)
-    print("output")
-    print(output.shape)
+
     return output.reshape(batch_dims + output.shape[1:])
 
   def _cnn(self, data):
     x = tf.concat(list(data.values()), -1)
-    print("CNN X:")
-    print(x.shape)
     x = x.astype(prec.global_policy().compute_dtype)
     for i, kernel in enumerate(self._cnn_kernels):
       depth = 2 ** i * self._cnn_depth
@@ -229,8 +226,6 @@ class Encoder(common.Module):
 
   def _mlp(self, data):
     x = tf.concat(list(data.values()), -1)
-    print("MLP X")
-    print(x.shape)
     x = x.astype(prec.global_policy().compute_dtype)
     for i, width in enumerate(self._mlp_layers):
       x = self.get(f'dense{i}', tfkl.Dense, width)(x)
@@ -269,6 +264,8 @@ class Decoder(common.Module):
   def _cnn(self, features):
     channels = {k: self._shapes[k][-1] for k in self.cnn_keys}
     ConvT = tfkl.Conv2DTranspose
+    print("CNN Features")
+    print(features.shape)
     x = self.get('convin', tfkl.Dense, 32 * self._cnn_depth)(features)
     x = tf.reshape(x, [-1, 1, 1, 32 * self._cnn_depth])
     for i, kernel in enumerate(self._cnn_kernels):
@@ -310,6 +307,8 @@ class MLP(common.Module):
     self._out = out
 
   def __call__(self, features):
+    print("MLP Features")
+    print(features.shape)
     x = tf.cast(features, prec.global_policy().compute_dtype)
     x = x.reshape([-1, x.shape[-1]])
     for index in range(self._layers):
