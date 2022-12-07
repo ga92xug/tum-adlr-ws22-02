@@ -95,9 +95,9 @@ class WorldModel(common.Module):
       assert name in self.heads, name
     self.model_opt = common.Optimizer('model', **config.model_opt)
     print("Model: \n")
-    print(self.encoder.summary())
-    print(self.rssm.summary())
-    print(self.heads.values().summary())
+    print(self.encoder.layers)
+    print(self.rssm)
+    print(self.heads.values())
 
   def train(self, data, state=None):
     with tf.GradientTape() as model_tape:
