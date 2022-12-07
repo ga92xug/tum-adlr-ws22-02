@@ -211,10 +211,14 @@ class Encoder(common.Module):
     if self.mlp_keys:
       outputs.append(self._mlp({k: data[k] for k in self.mlp_keys}))
     output = tf.concat(outputs, -1)
+    print("output")
+    print(output.shape)
     return output.reshape(batch_dims + output.shape[1:])
 
   def _cnn(self, data):
     x = tf.concat(list(data.values()), -1)
+    print("CNN X:")
+    print(x.shape)
     x = x.astype(prec.global_policy().compute_dtype)
     for i, kernel in enumerate(self._cnn_kernels):
       depth = 2 ** i * self._cnn_depth
@@ -225,6 +229,8 @@ class Encoder(common.Module):
 
   def _mlp(self, data):
     x = tf.concat(list(data.values()), -1)
+    print("MLP X")
+    print(x.shape)
     x = x.astype(prec.global_policy().compute_dtype)
     for i, width in enumerate(self._mlp_layers):
       x = self.get(f'dense{i}', tfkl.Dense, width)(x)
