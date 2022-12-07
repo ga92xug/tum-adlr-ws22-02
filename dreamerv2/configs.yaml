@@ -155,6 +155,26 @@ dmc_proprio:
   actor_ent: 1e-4
   kl.free: 1.0
 
+dmc_proprio+vision:
+
+  task: dmc_walker_walk
+  encoder: {mlp_keys: '.*', cnn_keys: 'image'}
+  decoder: {mlp_keys: '.*', cnn_keys: 'image'}
+  action_repeat: 2
+  eval_every: 1e4
+  prefill: 1000
+  pretrain: 100
+  clip_rewards: identity
+  pred_discount: False
+  replay.prioritize_ends: False
+  grad_heads: [decoder, reward]
+  rssm: {hidden: 200, deter: 200}
+  model_opt.lr: 3e-4
+  actor_opt.lr: 8e-5
+  critic_opt.lr: 8e-5
+  actor_ent: 1e-4
+  kl.free: 1.0
+
 debug:
 
   jit: False
