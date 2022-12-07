@@ -264,8 +264,6 @@ class Decoder(common.Module):
   def _cnn(self, features):
     channels = {k: self._shapes[k][-1] for k in self.cnn_keys}
     ConvT = tfkl.Conv2DTranspose
-    print("CNN Features")
-    print(features.shape)
     x = self.get('convin', tfkl.Dense, 32 * self._cnn_depth)(features)
     x = tf.reshape(x, [-1, 1, 1, 32 * self._cnn_depth])
     for i, kernel in enumerate(self._cnn_kernels):
@@ -307,8 +305,6 @@ class MLP(common.Module):
     self._out = out
 
   def __call__(self, features):
-    print("MLP Features")
-    print(features.shape)
     x = tf.cast(features, prec.global_policy().compute_dtype)
     x = x.reshape([-1, x.shape[-1]])
     for index in range(self._layers):
