@@ -69,6 +69,8 @@ class Plan2Explore(common.Module):
     return None, metrics
 
   def _intr_reward(self, seq):
+    print("Seq:")
+    print(seq)
     inputs = seq['feat']
     if self.config.disag_action_cond:
       action = tf.cast(seq['action'], inputs.dtype)
