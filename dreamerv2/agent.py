@@ -135,6 +135,8 @@ class WorldModel(common.Module):
 
   def imagine(self, policy, start, is_terminal, horizon):
     flatten = lambda x: x.reshape([-1] + list(x.shape[2:]))
+    print("Seq:")
+    print(start)
     start = {k: flatten(v) for k, v in start.items()}
     start['feat'] = self.rssm.get_feat(start)
     start['action'] = tf.zeros_like(policy(start['feat']).mode())
