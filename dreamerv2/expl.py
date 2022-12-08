@@ -69,6 +69,7 @@ class Plan2Explore(common.Module):
     return None, metrics
 
   def _intr_reward(self, seq):
+    print('We are in intr reward Plan2Explore')
     inputs = seq['feat']
     if self.config.disag_action_cond:
       action = tf.cast(seq['action'], inputs.dtype)
@@ -78,6 +79,10 @@ class Plan2Explore(common.Module):
     if self.config.disag_log:
       disag = tf.math.log(disag)
     reward = self.config.expl_intr_scale * self.intr_rewnorm(disag)[0]
+    if self.config.expl_guide_scale and seq['contact_reward'] != None:
+      # passt noch nicht
+      print('We are in in guide scale')
+      reward += self.config.expl_guide_scale * seq['contact_reward']
     if self.config.expl_extr_scale:
       reward += self.config.expl_extr_scale * self.extr_rewnorm(
           self.reward(seq))[0]
@@ -105,6 +110,7 @@ class ModelLoss(common.Module):
     self.ac = agent.ActorCritic(config, act_space, tfstep)
     self.actor = self.ac.actor
     self.head = common.MLP([], **self.config.expl_head)
+    # self.head shape = [], {layers: 4, units: 400, act: elu, norm: none, dist: mse}
     self.opt = common.Optimizer('expl', **self.config.expl_opt)
 
   def train(self, start, context, data):
@@ -118,6 +124,7 @@ class ModelLoss(common.Module):
     return None, metrics
 
   def _intr_reward(self, seq):
+    print('We are in intr reward ModelLoss')
     reward = self.config.expl_intr_scale * self.head(seq['feat']).mode()
     if self.config.expl_extr_scale:
       reward += self.config.expl_extr_scale * self.reward(seq)

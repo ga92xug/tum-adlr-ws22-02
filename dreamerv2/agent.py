@@ -14,7 +14,7 @@ class Agent(common.Module):
     self.step = step
     self.tfstep = tf.Variable(int(self.step), tf.int64)
     self.wm = WorldModel(config, obs_space, self.tfstep)
-    self._task_behavior = ActorCritic(config, self.act_space, self.tfstep)
+    self._task_behavior = ActorCritic(config, self.act_space, self.tfstep, self.obs_space)
     if config.expl_behavior == 'greedy':
       self._expl_behavior = self._task_behavior
     else:
@@ -189,6 +189,8 @@ class WorldModel(common.Module):
     obs = obs.copy()
     for key, value in obs.items():
       if key.startswith('log_'):
+        # print('key start with log_ (should be contacts)', key)
+        # print('for vision this is not a problem maybe for proprio')
         continue
       if value.dtype == tf.int32:
         value = value.astype(dtype)
@@ -224,10 +226,11 @@ class WorldModel(common.Module):
 
 class ActorCritic(common.Module):
 
-  def __init__(self, config, act_space, tfstep):
+  def __init__(self, config, act_space, tfstep, obs_space=None):
     self.config = config
     self.act_space = act_space
     self.tfstep = tfstep
+    self.obs_space = obs_space
     discrete = hasattr(act_space, 'n')
     if self.config.actor.dist == 'auto':
       self.config = self.config.update({
@@ -256,6 +259,13 @@ class ActorCritic(common.Module):
     # them to scale the whole sequence.
     with tf.GradientTape() as actor_tape:
       seq = world_model.imagine(self.actor, start, is_terminal, hor)
+      
+      if self.obs_space == None:
+        print('\n obs space is none. Should only happen once per epoch \n')
+        seq['contact_reward'] = None
+      else:
+        seq['contact_reward'] = self.obs_space['contact_reward']
+
       reward = reward_fn(seq)
       seq['reward'], mets1 = self.rewnorm(reward)
       mets1 = {f'reward_{k}': v for k, v in mets1.items()}

@@ -102,14 +102,16 @@ def main():
   def per_episode(ep, mode):
     length = len(ep['reward']) - 1
     score = float(ep['reward'].astype(np.float64).sum())
+    grab_reward = float(ep['contact_reward'].astype(np.float64).sum())
     # contacts
-    contacts = ep['contacts'].astype(np.uint32).sum()
-    contact_force_sum = float(ep['contact_forces'].astype(np.float64).sum())
-    contact_force_mean = float(ep['contact_forces'].astype(np.float64).mean())
+    contacts = ep['log_contacts'].astype(np.uint32).sum()
+    contact_force_sum = float(ep['log_contact_forces'].astype(np.float64).sum())
+    contact_force_mean = float(ep['log_contact_forces'].astype(np.float64).mean())
 
-    print(f'{mode.title()} episode has {length} steps and return {score:.1f}.')
+    print(f'{mode.title()} episode has {length} steps and return {score:.1f} and grab reward {grab_reward:.1f}.')
     print(f'Episode has {contacts} contacts and contact force sum {contact_force_sum:.1f} and mean {contact_force_mean:.1f}.')
     logger.scalar(f'{mode}_return', score)
+    logger.scalar(f'{mode}_grab_reward', grab_reward)
     logger.scalar(f'{mode}_length', length)
     # contacts
     logger.scalar(f'{mode}_contacts', contacts)

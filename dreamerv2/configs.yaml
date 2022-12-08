@@ -68,6 +68,7 @@ defaults:
   # Exploration
   expl_intr_scale: 1.0
   expl_extr_scale: 0.0
+  expl_guide_scale: 0.5
   expl_opt: {opt: adam, lr: 3e-4, eps: 1e-5, clip: 100, wd: 1e-6}
   expl_head: {layers: 4, units: 400, act: elu, norm: none, dist: mse}
   expl_reward_norm: {momentum: 1.0, scale: 1.0, eps: 1e-8}
