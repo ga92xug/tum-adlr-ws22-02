@@ -52,8 +52,7 @@ class Agent(common.Module):
     action = common.action_noise(action, noise, self.act_space)
     outputs = {'action': action}
     state = (latent, action)
-    print("State!!!")
-    print(state)
+
     return outputs, state
 
   @tf.function

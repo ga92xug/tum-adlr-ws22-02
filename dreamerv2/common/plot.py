@@ -67,6 +67,7 @@ def load_runs(args):
     filenames = list(indir.glob('**/*.jsonl'))
     total += filenames
     for filename in filenames:
+      print(filename)
       task, method, seed = filename.relative_to(indir).parts[:-1]
       if not any(p.search(task) for p in args.tasks):
         continue
