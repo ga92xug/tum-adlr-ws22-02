@@ -21,9 +21,19 @@ class Agent(common.Module):
       self._expl_behavior = getattr(expl, config.expl_behavior)(
           self.config, self.act_space, self.wm, self.tfstep,
           lambda seq: self.wm.heads['reward'](seq['feat']).mode())
+          #lambda seq: self.wm.heads['contact_reward'](seq['feat']).mode())
+    self._mode = self.set_mode('train')
+
+  def set_mode(self, mode):
+    self._mode = mode
+    self._task_behavior.set_mode(self._mode)
+    if self._expl_behavior is not self._task_behavior:
+      self._expl_behavior.set_mode(self._mode)
+    
 
   @tf.function
   def policy(self, obs, state=None, mode='train'):
+    # print('policy')
     obs = tf.nest.map_structure(tf.tensor, obs)
     tf.py_function(lambda: self.tfstep.assign(
         int(self.step), read_value=False), [], [])
@@ -42,6 +52,7 @@ class Agent(common.Module):
       action = actor.mode()
       noise = self.config.eval_noise
     elif mode == 'explore':
+      # self._expl_behavior.set_obs(obs)
       actor = self._expl_behavior.actor(feat)
       action = actor.sample()
       noise = self.config.expl_noise
@@ -57,12 +68,15 @@ class Agent(common.Module):
   @tf.function
   def train(self, data, state=None):
     metrics = {}
+    # print('train', data)
+    # contact_reward is in data
     state, outputs, mets = self.wm.train(data, state)
     metrics.update(mets)
     start = outputs['post']
     reward = lambda seq: self.wm.heads['reward'](seq['feat']).mode()
+    contact_reward = lambda seq: self.wm.heads['contact_reward'](seq['feat']).mode()
     metrics.update(self._task_behavior.train(
-        self.wm, start, data['is_terminal'], reward))
+        self.wm, start, data['is_terminal'], reward, contact_reward))
     if self.config.expl_behavior != 'greedy':
       mets = self._expl_behavior.train(start, outputs, data)[-1]
       metrics.update({'expl_' + key: value for key, value in mets.items()})
@@ -109,6 +123,7 @@ class WorldModel(common.Module):
     self.heads = {}
     self.heads['decoder'] = common.Decoder(shapes, **config.decoder)
     self.heads['reward'] = common.MLP([], **config.reward_head)
+    self.heads['contact_reward'] = common.MLP([], **config.contact_reward_head)
     if config.pred_discount:
       self.heads['discount'] = common.MLP([], **config.discount_head)
     for name in config.grad_heads:
@@ -156,7 +171,9 @@ class WorldModel(common.Module):
   def imagine(self, policy, start, is_terminal, horizon):
     flatten = lambda x: x.reshape([-1] + list(x.shape[2:]))
     start = {k: flatten(v) for k, v in start.items()}
+    #print('imagine start: ', start)
     start['feat'] = self.rssm.get_feat(start)
+    # print('imagine start: ', start['feat'])
     start['action'] = tf.zeros_like(policy(start['feat']).mode())
     seq = {k: [v] for k, v in start.items()}
     for _ in range(horizon):
@@ -166,6 +183,7 @@ class WorldModel(common.Module):
       for key, value in {**state, 'action': action, 'feat': feat}.items():
         seq[key].append(value)
     seq = {k: tf.stack(v, 0) for k, v in seq.items()}
+    # print('imagine seq: ', seq)
     if 'discount' in self.heads:
       disc = self.heads['discount'](seq['feat']).mean()
       if is_terminal is not None:
@@ -195,6 +213,7 @@ class WorldModel(common.Module):
       if value.dtype == tf.int32:
         value = value.astype(dtype)
       if value.dtype == tf.uint8:
+        # this is for the image -> normalize to [-0.5, 0.5]
         value = value.astype(dtype) / 255.0 - 0.5
       obs[key] = value
     obs['reward'] = {
@@ -248,8 +267,12 @@ class ActorCritic(common.Module):
     self.actor_opt = common.Optimizer('actor', **self.config.actor_opt)
     self.critic_opt = common.Optimizer('critic', **self.config.critic_opt)
     self.rewnorm = common.StreamNorm(**self.config.reward_norm)
+    self.contact_rewnorm = common.StreamNorm(**self.config.reward_norm)
 
-  def train(self, world_model, start, is_terminal, reward_fn):
+  def set_mode(self, mode):
+    self._mode = mode
+
+  def train(self, world_model, start, is_terminal, reward_fn, contact_reward_fn):
     metrics = {}
     hor = self.config.imag_horizon
     # The weights are is_terminal flags for the imagination start states.
@@ -259,14 +282,10 @@ class ActorCritic(common.Module):
     # them to scale the whole sequence.
     with tf.GradientTape() as actor_tape:
       seq = world_model.imagine(self.actor, start, is_terminal, hor)
-      
-      if self.obs_space == None:
-        print('\n obs space is none. Should only happen once per epoch \n')
-        seq['contact_reward'] = None
-      else:
-        seq['contact_reward'] = self.obs_space['contact_reward']
-
       reward = reward_fn(seq)
+      if self._mode == 'train':
+        contact_reward = contact_reward_fn(seq)
+        reward = reward + contact_reward # + self.config.contact_reward_weight * contact_reward
       seq['reward'], mets1 = self.rewnorm(reward)
       mets1 = {f'reward_{k}': v for k, v in mets1.items()}
       target, mets2 = self.target(seq)
@@ -341,6 +360,7 @@ class ActorCritic(common.Module):
     # Discount:   [d0]  [d1]  [d2]   d3
     # Targets:     t0    t1    t2
     reward = tf.cast(seq['reward'], tf.float32)
+    # contact_reward = tf.cast(seq['contact_reward'], tf.float32)
     disc = tf.cast(seq['discount'], tf.float32)
     value = self._target_critic(seq['feat']).mode()
     # Skipping last time step because it is used for bootstrapping.

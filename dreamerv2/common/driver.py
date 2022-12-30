@@ -29,10 +29,12 @@ class Driver:
   def __call__(self, policy, steps=0, episodes=0):
     step, episode = 0, 0
     while step < steps or episode < episodes:
+      # Reset any environments that are done.
       obs = {
           i: self._envs[i].reset()
           for i, ob in enumerate(self._obs) if ob is None or ob['is_last']}
       for i, ob in obs.items():
+        # for loop wird nur einmal durchlaufen, da obs nur ein Element hat
         self._obs[i] = ob() if callable(ob) else ob
         act = {k: np.zeros(v.shape) for k, v in self._act_spaces[i].items()}
         tran = {k: self._convert(v) for k, v in {**ob, **act}.items()}
@@ -47,6 +49,8 @@ class Driver:
       obs = [e.step(a) for e, a in zip(self._envs, actions)]
       obs = [ob() if callable(ob) else ob for ob in obs]
       for i, (act, ob) in enumerate(zip(actions, obs)):
+        # for loop wird nur einmal durchlaufen, da obs nur ein Element hat
+        # print('enumerate(zip(actions, obs)', 'i:', i, 'action', act, 'ob', ob)
         tran = {k: self._convert(v) for k, v in {**ob, **act}.items()}
         [fn(tran, worker=i, **self._kwargs) for fn in self._on_steps]
         self._eps[i].append(tran)

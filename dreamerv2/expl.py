@@ -26,6 +26,7 @@ class Random(common.Module):
 class Plan2Explore(common.Module):
 
   def __init__(self, config, act_space, wm, tfstep, reward):
+    # self.obs = {'contact_reward': None}
     self.config = config
     self.reward = reward
     self.wm = wm
@@ -46,8 +47,17 @@ class Plan2Explore(common.Module):
     self.opt = common.Optimizer('expl', **config.expl_opt)
     self.extr_rewnorm = common.StreamNorm(**self.config.expl_reward_norm)
     self.intr_rewnorm = common.StreamNorm(**self.config.expl_reward_norm)
+    self.guide_rewnorm = common.StreamNorm(**self.config.expl_reward_norm)
+
+    self.contact_reward = lambda seq: self.wm.heads['contact_reward'](seq['feat']).mode()
+
+  def set_mode(self, mode):
+    self._mode = mode
+    self.ac.set_mode(mode)
 
   def train(self, start, context, data):
+    #print('train in expl.py')
+    # in data is contact_reward
     metrics = {}
     stoch = start['stoch']
     if self.config.rssm.discrete:
@@ -65,24 +75,45 @@ class Plan2Explore(common.Module):
       inputs = tf.concat([inputs, action], -1)
     metrics.update(self._train_ensemble(inputs, target))
     metrics.update(self.ac.train(
-        self.wm, start, data['is_terminal'], self._intr_reward))
+        self.wm, start, data['is_terminal'], self._intr_reward, self.contact_reward))
     return None, metrics
 
   def _intr_reward(self, seq):
-    print('We are in intr reward Plan2Explore')
+    # batch: 10, length: 10 = 100 daher kommt die 100
     inputs = seq['feat']
+    #print('inputs', inputs)
+    # shape=(16, 100, 2048), dtype=float16)
     if self.config.disag_action_cond:
       action = tf.cast(seq['action'], inputs.dtype)
+      #print('action', action)
+      # shape=(16, 100, 5), dtype=float16)
       inputs = tf.concat([inputs, action], -1)
+      #print('inputs after concate', inputs)
+      # shape=(16, 100, 2053), dtype=float16)
+    
     preds = [head(inputs).mode() for head in self._networks]
+    #print('preds', preds[0].shape)
+    # shape=(16, 100, 1024), dtype=float32 
+    # len(preds) 10 = config.disag_models
+    #print('tf.tensor(preds)', tf.tensor(preds).shape, 
+    #'+ std(0)', tf.tensor(preds).std(0).shape,
+    #'+ mean(-1)', tf.tensor(preds).std(0).mean(-1).shape)
+    # tf.tensor(preds) (10, 16, 100, 1024) + std(0) (16, 100, 1024) + mean(-1) (16, 100)
     disag = tf.tensor(preds).std(0).mean(-1)
     if self.config.disag_log:
       disag = tf.math.log(disag)
+    #print('disag', disag, 'disag.shape', disag.shape)
+    #print('self.intr_rewnorm(disag)[0]', self.intr_rewnorm(disag)[0])
+    # shape=(16, 100), dtype=float32) disag.shape (16, 100)
     reward = self.config.expl_intr_scale * self.intr_rewnorm(disag)[0]
-    if self.config.expl_guide_scale and seq['contact_reward'] != None:
+    if self.config.expl_guide_scale and False:
       # passt noch nicht
-      print('We are in in guide scale')
-      reward += self.config.expl_guide_scale * seq['contact_reward']
+      # print('We are in in guide scale')
+      # self.obs[contact_reward] tf.Tensor([0.], shape=(1,), dtype=float32)
+      #print('contact_reward', contact_reward)
+      # print('norm', self.guide_rewnorm(contact_reward)[0])
+      # reward += self.config.expl_guide_scale * contact_reward
+      pass
     if self.config.expl_extr_scale:
       reward += self.config.expl_extr_scale * self.extr_rewnorm(
           self.reward(seq))[0]
@@ -124,7 +155,6 @@ class ModelLoss(common.Module):
     return None, metrics
 
   def _intr_reward(self, seq):
-    print('We are in intr reward ModelLoss')
     reward = self.config.expl_intr_scale * self.head(seq['feat']).mode()
     if self.config.expl_extr_scale:
       reward += self.config.expl_extr_scale * self.reward(seq)

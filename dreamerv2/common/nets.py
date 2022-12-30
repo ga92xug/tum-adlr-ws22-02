@@ -206,6 +206,12 @@ class Encoder(common.Module):
   def __call__(self, data):
     key, shape = list(self.shapes.items())[0]
     batch_dims = data[key].shape[:-len(shape)]
+    # print('Encoder key:', key)
+    # print('Encoder input shapes:', self.shapes)
+    # print('Encoder batch dims:', batch_dims)
+    #Encoder key: image
+    # Encoder input shapes: {'image': (64, 64, 3), 'reward': (), 'contact_reward': (), 'is_first': (), 'is_last': (), 'is_terminal': (), 'log_contacts': (), 'log_contact_forces': (), 'arm_pos': (8, 2), 'arm_vel': (8,), 'touch': (5,), 'hand_pos': (4,), 'box_pos': (4, 4), 'box_vel': (12,), 'target_pos': (2,)}
+    # Encoder batch dims: (1,)
     data = {
         k: tf.reshape(v, (-1,) + tuple(v.shape)[len(batch_dims):])
         for k, v in data.items()}

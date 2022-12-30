@@ -182,7 +182,6 @@ class DMC:
                 if con_object1 - 1 in fingertips:
                     fingers_involved.append(con_object1 - 1)
 
-
                 touched_boxes.append(con_object2)
                 
             else:
