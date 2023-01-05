@@ -117,11 +117,13 @@ class DMC:
         'image': gym.spaces.Box(0, 255, self._size + (3,), dtype=np.uint8),
         'reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
         'contact_reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
+        'stacking_reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
         'is_first': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'is_last': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'is_terminal': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'log_contacts': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
         'log_contact_forces': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32)
+        'log_box_pos_z_mean': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32)
     }
     for key, value in self._env.observation_spec().items():
       '''
@@ -203,60 +205,25 @@ class DMC:
 
   def calculate_box_pos(self):
     reward = 0
-    contacts = 0
-    contact_forces = 0
     sim = self._env.physics
-    fingertips = self.fingertips
-    boxes = self.boxes
     # fingertips = [13,14,17,18]
     # boxes = [19,20,21,21]
-    touched_boxes = []
-    fingers_involved = []
     print(self.task)
+    n_boxes = self.task.split("_")[1]
+    print(n_boxes)
     print("Box Pos")
-    box_names = ['box' + str(b) for b in range(4)]
-    print(sim.body_2d_pose(box_names))
+    box_names = ['box' + str(b) for b in range(n_boxes)]
+    box_pos = sim.body_2d_pose(box_names)[:,:2]
+    print(box_pos)
+    box_pos_z = box_pos[:,1]
+    print(box_pos_z)
     
-    for i in range(number_contacts):
-        contact = sim.data.contact[i]
-        con_object1 = contact.geom1
-        con_object2 = contact.geom2
+    for i in range(n_boxes):
+        
+        if box_pos_z[i] > 0:
+            reward += 1
 
-        # swap if needed
-        if con_object2 in fingertips:
-            con_object1, con_object2 = con_object2, con_object1
-
-        # TODO do we need to check the contact_force
-        if any(sim.data.contact_force(i)[0] > 0) and (con_object1 in fingertips) and (con_object2 in boxes):
-            #print('One finger and one box involved')
-            contacts += 1
-            contact_forces += np.sum(sim.data.contact_force(i)[0])
-            # exactly one finger and one box is part of contact 
-            # (we don't want fingers to touch each other)
-
-            if len(fingers_involved) == 0:
-                # save first finger and box
-
-                fingers_involved.append(con_object1)
-                # append also the other part of the finger
-                if con_object1 + 1 in fingertips:
-                    fingers_involved.append(con_object1 + 1)
-                if con_object1 - 1 in fingertips:
-                    fingers_involved.append(con_object1 - 1)
-
-                touched_boxes.append(con_object2)
-                
-            else:
-                # one finger is already involved
-                if (con_object1 not in fingers_involved) and (con_object2 in touched_boxes):
-                    # new finger is involved and box is already touched
-                    reward = 1
-                    return reward, contacts, contact_forces
-                elif con_object2 not in touched_boxes:
-                    # new box is touched and we don't care about which finger is involved
-                    touched_boxes.append(con_object2)
-
-    return reward, contacts, contact_forces
+    return reward, box_pos, box_pos_z
 
   def step(self, action):
     assert np.isfinite(action['action']).all(), action['action']
@@ -264,6 +231,8 @@ class DMC:
     contact_rewards = 0.0
     contacts = 0
     contact_forces = 0
+    stacking_rewards = 0.0
+    box_pos_z_mean = 0.0
     
     for i in range(self._action_repeat):
       time_step = self._env.step(action['action'])
@@ -272,10 +241,12 @@ class DMC:
       # calculate contact reward
       ncon = self._env.physics.data.ncon
       contact_reward, contact, contact_force = self.calculate_contacts(ncon)
-      _, _, _ = self.calculate_box_pos()
+      stacking_reward, box_pos, box_pos_z = self.calculate_box_pos()
       contact_rewards += contact_reward
+      stacking_rewards += stacking_reward
       contacts += contact
       contact_forces += contact_force
+      box_pos_z_mean += np.mean(box_pos_z)
       
           
       if time_step.last():
@@ -285,12 +256,14 @@ class DMC:
     obs = {
         'reward': reward,
         'contact_reward': contact_reward,
+        'stacking_reward': stacking_reward,
         'is_first': False,
         'is_last': time_step.last(),
         'is_terminal': time_step.discount == 0,
         'image': self._env.physics.render(*self._size, camera_id=self._camera),
         'log_contacts': contacts,
         'log_contact_forces': contact_forces,
+        'log_box_pos_z_mean': box_pos_z_mean,
     }
     obs.update({
         k: v for k, v in dict(time_step.observation).items()
@@ -304,12 +277,14 @@ class DMC:
     obs = {
         'reward': 0.0,
         'contact_reward': 0.0,
+        'stacking_reward': 0.0,
         'is_first': True,
         'is_last': False,
         'is_terminal': False,
         'image': self._env.physics.render(*self._size, camera_id=self._camera),
         'log_contacts': 0,
         'log_contact_forces': 0,
+        'log_box_pos_z_mean': 0,
     }
     obs.update({
         k: v for k, v in dict(time_step.observation).items()
