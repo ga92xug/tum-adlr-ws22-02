@@ -252,8 +252,8 @@ class DMC:
     assert time_step.discount in (0, 1)
     obs = {
         'reward': reward,
-        'contact_reward': contact_reward,
-        'stacking_reward': stacking_reward,
+        'contact_reward': contact_rewards,
+        'stacking_reward': stacking_rewards,
         'is_first': False,
         'is_last': time_step.last(),
         'is_terminal': time_step.discount == 0,
