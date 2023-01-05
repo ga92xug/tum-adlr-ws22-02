@@ -208,13 +208,10 @@ class DMC:
     sim = self._env.physics
     # fingertips = [13,14,17,18]
     # boxes = [19,20,21,21]
-    print(self.task)
     n_boxes = int(self.task.split("_")[1])
-    print(n_boxes)
-    print("Box Pos")
+    print("Box Pos Z Values:")
     box_names = ['box' + str(b) for b in range(n_boxes)]
     box_pos = sim.body_2d_pose(box_names)[:,:2]
-    print(box_pos)
     box_pos_z = box_pos[:,1]
     print(box_pos_z)
     
