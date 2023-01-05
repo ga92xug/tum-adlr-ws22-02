@@ -209,7 +209,7 @@ class DMC:
     # fingertips = [13,14,17,18]
     # boxes = [19,20,21,21]
     print(self.task)
-    n_boxes = self.task.split("_")[1]
+    n_boxes = int(self.task.split("_")[1])
     print(n_boxes)
     print("Box Pos")
     box_names = ['box' + str(b) for b in range(n_boxes)]
