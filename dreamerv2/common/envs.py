@@ -122,7 +122,7 @@ class DMC:
         'is_last': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'is_terminal': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'log_contacts': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
-        'log_contact_forces': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32)
+        'log_contact_forces': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
         'log_box_pos_z_mean': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32)
     }
     for key, value in self._env.observation_spec().items():
