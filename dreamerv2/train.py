@@ -38,8 +38,11 @@ def main():
   config = common.Flags(config).parse(remaining)
 
   logdir = pathlib.Path(config.logdir).expanduser()
+  # easier download from gcloud
+  logdir_downloads = pathlib.Path(config.logdir + "/downloads").expanduser()
+  logdir_downloads.mkdir(parents=True, exist_ok=True)
   logdir.mkdir(parents=True, exist_ok=True)
-  config.save(logdir / 'config.yaml')
+  config.save(logdir_downloads / 'config.yaml')
   print(config, '\n')
   print('Logdir', logdir)
 
@@ -62,8 +65,8 @@ def main():
   step = common.Counter(train_replay.stats['total_steps'])
   outputs = [
       common.TerminalOutput(),
-      common.JSONLOutput(logdir),
-      common.TensorBoardOutput(logdir),
+      common.JSONLOutput(logdir_downloads),
+      common.TensorBoardOutput(logdir_downloads),
   ]
   logger = common.Logger(step, outputs, multiplier=config.action_repeat)
   metrics = collections.defaultdict(list)
@@ -99,9 +102,21 @@ def main():
   def per_episode(ep, mode):
     length = len(ep['reward']) - 1
     score = float(ep['reward'].astype(np.float64).sum())
-    print(f'{mode.title()} episode has {length} steps and return {score:.1f}.')
+    grab_reward = float(ep['contact_reward'].astype(np.float64).sum())
+    # contacts
+    contacts = ep['log_contacts'].astype(np.uint32).sum()
+    contact_force_sum = float(ep['log_contact_forces'].astype(np.float64).sum())
+    contact_force_mean = float(ep['log_contact_forces'].astype(np.float64).mean())
+
+    print(f'{mode.title()} episode has {length} steps and return {score:.1f} and grab reward {grab_reward:.1f}.')
+    print(f'Episode has {contacts} contacts and contact force sum {contact_force_sum:.1f} and mean {contact_force_mean:.1f}.')
     logger.scalar(f'{mode}_return', score)
+    logger.scalar(f'{mode}_grab_reward', grab_reward)
     logger.scalar(f'{mode}_length', length)
+    # contacts
+    logger.scalar(f'{mode}_contacts', contacts)
+    logger.scalar(f'{mode}_contact_force_sum', contact_force_sum)
+    logger.scalar(f'{mode}_contact_force_mean', contact_force_mean)
     for key, value in ep.items():
       if re.match(config.log_keys_sum, key):
         logger.scalar(f'sum_{mode}_{key}', ep[key].sum())
@@ -181,9 +196,11 @@ def main():
   while step < config.steps:
     logger.write()
     print('Start evaluation.')
+    agnt.set_mode('eval')
     logger.add(agnt.report(next(eval_dataset)), prefix='eval')
     eval_driver(eval_policy, episodes=config.eval_eps)
     print('Start training.')
+    agnt.set_mode('train')
     train_driver(train_policy, steps=config.eval_every)
     agnt.save(logdir / 'variables.pkl')
   for env in train_envs + eval_envs:

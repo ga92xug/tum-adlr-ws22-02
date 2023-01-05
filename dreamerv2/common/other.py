@@ -116,6 +116,7 @@ class StreamNorm(tfutils.Module):
     # Momentum of 0 normalizes only based on the current batch.
     # Momentum of 1 disables normalization.
     self._shape = tuple(shape)
+    #print('StreamNorm', self._shape)
     self._momentum = momentum
     self._scale = scale
     self._eps = eps

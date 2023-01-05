@@ -42,6 +42,8 @@ class Replay:
   def add_step(self, transition, worker=0):
     episode = self._ongoing_eps[worker]
     for key, value in transition.items():
+      # print('add step replay', key, value)
+      # transition.items are the observations
       episode[key].append(value)
     if transition['is_last']:
       self.add_episode(episode)

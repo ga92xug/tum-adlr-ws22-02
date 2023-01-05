@@ -7,6 +7,7 @@ import traceback
 import cloudpickle
 import gym
 import numpy as np
+import warnings
 
 
 class GymWrapper:
@@ -75,7 +76,11 @@ class DMC:
   # For stacker stack_2:
     # observations: (arm_pos, arm_vel, touch, hand_pos, box_pos, box_vel, target_pos)
   def __init__(self, name, action_repeat=1, size=(64, 64), camera=None):
+    self.fingertips = [13,14,17,18]
+    self.boxes = [19,20,21,21]
+
     os.environ['MUJOCO_GL'] = 'egl'
+    self.interesting_geom = [13,14,17,18]
     domain, task = name.split('_', 1)
     if domain == 'cup':  # Only domain with multiple words.
       domain = 'ball_in_cup'
@@ -110,11 +115,22 @@ class DMC:
     spaces = {
         'image': gym.spaces.Box(0, 255, self._size + (3,), dtype=np.uint8),
         'reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
+        'contact_reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
         'is_first': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'is_last': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'is_terminal': gym.spaces.Box(0, 1, (), dtype=np.bool),
+        'log_contacts': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
+        'log_contact_forces': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32)
     }
     for key, value in self._env.observation_spec().items():
+      '''
+      _env.observation_spec().items() returns that:
+      key: position, value: Array(shape=(4,), dtype=dtype('float64'), name='position')
+      key: velocity, value: Array(shape=(3,), dtype=dtype('float64'), name='velocity')
+      key: touch, value: Array(shape=(2,), dtype=dtype('float64'), name='touch')
+      key: target_position, value: Array(shape=(2,), dtype=dtype('float64'), name='target_position')
+      key: dist_to_target, value: Array(shape=(), dtype=dtype('float64'), name='dist_to_target')
+      '''
       if key in self._ignored_keys:
         continue
       if value.dtype == np.float64:
@@ -131,35 +147,110 @@ class DMC:
     action = gym.spaces.Box(spec.minimum, spec.maximum, dtype=np.float32)
     return {'action': action}
 
+  def calculate_contacts(self, number_contacts):
+    reward = 0
+    contacts = 0
+    contact_forces = 0
+    sim = self._env.physics
+    fingertips = self.fingertips
+    boxes = self.boxes
+    # fingertips = [13,14,17,18]
+    # boxes = [19,20,21,21]
+    touched_boxes = []
+    fingers_involved = []
+    
+    for i in range(number_contacts):
+        contact = sim.data.contact[i]
+        con_object1 = contact.geom1
+        con_object2 = contact.geom2
+
+        # swap if needed
+        if con_object2 in fingertips:
+            con_object1, con_object2 = con_object2, con_object1
+
+        # TODO do we need to check the contact_force
+        if any(sim.data.contact_force(i)[0] > 0) and (con_object1 in fingertips) and (con_object2 in boxes):
+            #print('One finger and one box involved')
+            contacts += 1
+            contact_forces += np.sum(sim.data.contact_force(i)[0])
+            # exactly one finger and one box is part of contact 
+            # (we don't want fingers to touch each other)
+
+            if len(fingers_involved) == 0:
+                # save first finger and box
+
+                fingers_involved.append(con_object1)
+                # append also the other part of the finger
+                if con_object1 + 1 in fingertips:
+                    fingers_involved.append(con_object1 + 1)
+                if con_object1 - 1 in fingertips:
+                    fingers_involved.append(con_object1 - 1)
+
+                touched_boxes.append(con_object2)
+                
+            else:
+                # one finger is already involved
+                if (con_object1 not in fingers_involved) and (con_object2 in touched_boxes):
+                    # new finger is involved and box is already touched
+                    reward = 1
+                    return reward, contacts, contact_forces
+                elif con_object2 not in touched_boxes:
+                    # new box is touched and we don't care about which finger is involved
+                    touched_boxes.append(con_object2)
+
+    return reward, contacts, contact_forces
+
   def step(self, action):
     assert np.isfinite(action['action']).all(), action['action']
     reward = 0.0
-    for _ in range(self._action_repeat):
+    contact_rewards = 0.0
+    contacts = 0
+    contact_forces = 0
+    
+    for i in range(self._action_repeat):
       time_step = self._env.step(action['action'])
       reward += time_step.reward or 0.0
+
+      # calculate contact reward
+      ncon = self._env.physics.data.ncon
+      contact_reward, contact, contact_force = self.calculate_contacts(ncon)
+      contact_rewards += contact_reward
+      contacts += contact
+      contact_forces += contact_force
+      
+          
       if time_step.last():
         break
+    
     assert time_step.discount in (0, 1)
     obs = {
         'reward': reward,
+        'contact_reward': contact_reward,
         'is_first': False,
         'is_last': time_step.last(),
         'is_terminal': time_step.discount == 0,
         'image': self._env.physics.render(*self._size, camera_id=self._camera),
+        'log_contacts': contacts,
+        'log_contact_forces': contact_forces,
     }
     obs.update({
         k: v for k, v in dict(time_step.observation).items()
         if k not in self._ignored_keys})
     return obs
 
+  
+
   def reset(self):
     time_step = self._env.reset()
     obs = {
         'reward': 0.0,
+        'contact_reward': 0.0,
         'is_first': True,
         'is_last': False,
         'is_terminal': False,
         'image': self._env.physics.render(*self._size, camera_id=self._camera),
+        'log_contacts': 0,
+        'log_contact_forces': 0,
     }
     obs.update({
         k: v for k, v in dict(time_step.observation).items()
