@@ -78,7 +78,7 @@ class Agent(common.Module):
     contact_reward = lambda seq: self.wm.heads['contact_reward'](seq['feat']).mode()
     stacking_reward = lambda seq: self.wm.heads['stacking_reward'](seq['feat']).mode()
     metrics.update(self._task_behavior.train(
-        self.wm, start, data['is_terminal'], reward, contact_reward))
+        self.wm, start, data['is_terminal'], reward, contact_reward, stacking_reward))
     if self.config.expl_behavior != 'greedy':
       mets = self._expl_behavior.train(start, outputs, data)[-1]
       metrics.update({'expl_' + key: value for key, value in mets.items()})
