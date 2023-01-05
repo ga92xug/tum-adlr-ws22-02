@@ -217,7 +217,8 @@ class DMC:
     
     for i in range(n_boxes):
         
-        if box_pos_z[i] > 0.022: # 0.022 box height on ground
+        #if box_pos_z[i] > 0.022: # 0.022 box height on ground
+        if box_pos_z[i] > 0.065: # total box height ca. 0.044 -> ca. 0.066 for box stacked on other box
             reward += 1
 
     return reward, box_pos, box_pos_z

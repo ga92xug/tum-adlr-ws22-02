@@ -111,7 +111,7 @@ def main():
     # Box Pos:
     box_pos_z_mean = float(ep['log_box_pos_z_mean'].astype(np.uint32).mean())
 
-    print(f'{mode.title()} episode has {length} steps and return {score:.1f} and grab reward {grab_reward:.1f}.')
+    print(f'{mode.title()} episode has {length} steps and return {score:.1f}, grab reward {grab_reward:.1f} and stacking reward {stacking_reward:.1f}.')
     print(f'Episode has {contacts} contacts and contact force sum {contact_force_sum:.1f} and mean {contact_force_mean:.1f}.')
     logger.scalar(f'{mode}_return', score)
     logger.scalar(f'{mode}_grab_reward', grab_reward)
