@@ -178,9 +178,6 @@ class WorldModel(common.Module):
     #print('imagine start: ', start)
     start['feat'] = self.rssm.get_feat(start)
     # print('imagine start: ', start['feat'])
-    for key in start:
-        print(key)
-    sys.exit()
     start['action'] = tf.zeros_like(policy(start['feat']).mode())
     seq = {k: [v] for k, v in start.items()}
     for _ in range(horizon):
