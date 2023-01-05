@@ -159,7 +159,7 @@ class DMC:
     touched_boxes = []
     fingers_involved = []
     print("Box Pos")
-    print(sim.data.body_2d_pose(self.boxes))
+    print(sim.body_2d_pose(self.boxes))
     
     for i in range(number_contacts):
         contact = sim.data.contact[i]
