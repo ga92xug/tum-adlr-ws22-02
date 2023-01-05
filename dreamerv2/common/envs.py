@@ -209,11 +209,11 @@ class DMC:
     # fingertips = [13,14,17,18]
     # boxes = [19,20,21,21]
     n_boxes = int(self.task.split("_")[1])
-    print("Box Pos Z Values:")
+    #print("Box Pos Z Values:")
     box_names = ['box' + str(b) for b in range(n_boxes)]
     box_pos = sim.body_2d_pose(box_names)[:,:2]
     box_pos_z = box_pos[:,1]
-    print(box_pos_z)
+    #print(box_pos_z)
     
     for i in range(n_boxes):
         
