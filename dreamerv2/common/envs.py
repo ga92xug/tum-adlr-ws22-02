@@ -82,6 +82,7 @@ class DMC:
     os.environ['MUJOCO_GL'] = 'egl'
     self.interesting_geom = [13,14,17,18]
     domain, task = name.split('_', 1)
+    self.task = task
     if domain == 'cup':  # Only domain with multiple words.
       domain = 'ball_in_cup'
     if domain == 'manip':
@@ -158,6 +159,60 @@ class DMC:
     # boxes = [19,20,21,21]
     touched_boxes = []
     fingers_involved = []
+    
+    for i in range(number_contacts):
+        contact = sim.data.contact[i]
+        con_object1 = contact.geom1
+        con_object2 = contact.geom2
+
+        # swap if needed
+        if con_object2 in fingertips:
+            con_object1, con_object2 = con_object2, con_object1
+
+        # TODO do we need to check the contact_force
+        if any(sim.data.contact_force(i)[0] > 0) and (con_object1 in fingertips) and (con_object2 in boxes):
+            #print('One finger and one box involved')
+            contacts += 1
+            contact_forces += np.sum(sim.data.contact_force(i)[0])
+            # exactly one finger and one box is part of contact 
+            # (we don't want fingers to touch each other)
+
+            if len(fingers_involved) == 0:
+                # save first finger and box
+
+                fingers_involved.append(con_object1)
+                # append also the other part of the finger
+                if con_object1 + 1 in fingertips:
+                    fingers_involved.append(con_object1 + 1)
+                if con_object1 - 1 in fingertips:
+                    fingers_involved.append(con_object1 - 1)
+
+                touched_boxes.append(con_object2)
+                
+            else:
+                # one finger is already involved
+                if (con_object1 not in fingers_involved) and (con_object2 in touched_boxes):
+                    # new finger is involved and box is already touched
+                    reward = 1
+                    return reward, contacts, contact_forces
+                elif con_object2 not in touched_boxes:
+                    # new box is touched and we don't care about which finger is involved
+                    touched_boxes.append(con_object2)
+
+    return reward, contacts, contact_forces
+
+  def calculate_box_pos(self):
+    reward = 0
+    contacts = 0
+    contact_forces = 0
+    sim = self._env.physics
+    fingertips = self.fingertips
+    boxes = self.boxes
+    # fingertips = [13,14,17,18]
+    # boxes = [19,20,21,21]
+    touched_boxes = []
+    fingers_involved = []
+    print(self.task)
     print("Box Pos")
     box_names = ['box' + str(b) for b in range(4)]
     print(sim.body_2d_pose(box_names))
@@ -217,6 +272,7 @@ class DMC:
       # calculate contact reward
       ncon = self._env.physics.data.ncon
       contact_reward, contact, contact_force = self.calculate_contacts(ncon)
+      _, _, _ = self.calculate_box_pos()
       contact_rewards += contact_reward
       contacts += contact
       contact_forces += contact_force
