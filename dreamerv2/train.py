@@ -103,20 +103,27 @@ def main():
     length = len(ep['reward']) - 1
     score = float(ep['reward'].astype(np.float64).sum())
     grab_reward = float(ep['contact_reward'].astype(np.float64).sum())
+    stacking_reward = float(ep['stacking_reward'].astype(np.float64).sum())
     # contacts
     contacts = ep['log_contacts'].astype(np.uint32).sum()
     contact_force_sum = float(ep['log_contact_forces'].astype(np.float64).sum())
     contact_force_mean = float(ep['log_contact_forces'].astype(np.float64).mean())
+    # Box Pos:
+    box_pos_z_mean = float(ep['box_pos_z_mean'].astype(np.uint32).mean())
 
     print(f'{mode.title()} episode has {length} steps and return {score:.1f} and grab reward {grab_reward:.1f}.')
     print(f'Episode has {contacts} contacts and contact force sum {contact_force_sum:.1f} and mean {contact_force_mean:.1f}.')
     logger.scalar(f'{mode}_return', score)
     logger.scalar(f'{mode}_grab_reward', grab_reward)
+    logger.scalar(f'{mode}_stacking_reward', stacking_reward)
     logger.scalar(f'{mode}_length', length)
     # contacts
     logger.scalar(f'{mode}_contacts', contacts)
     logger.scalar(f'{mode}_contact_force_sum', contact_force_sum)
     logger.scalar(f'{mode}_contact_force_mean', contact_force_mean)
+    # box pos z
+    logger.scalar(f'{mode}_box_pos_z_mean', box_pos_z_mean)
+    
     for key, value in ep.items():
       if re.match(config.log_keys_sum, key):
         logger.scalar(f'sum_{mode}_{key}', ep[key].sum())

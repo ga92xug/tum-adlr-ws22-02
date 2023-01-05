@@ -76,6 +76,7 @@ class Agent(common.Module):
     start = outputs['post']
     reward = lambda seq: self.wm.heads['reward'](seq['feat']).mode()
     contact_reward = lambda seq: self.wm.heads['contact_reward'](seq['feat']).mode()
+    stacking_reward = lambda seq: self.wm.heads['stacking_reward'](seq['feat']).mode()
     metrics.update(self._task_behavior.train(
         self.wm, start, data['is_terminal'], reward, contact_reward))
     if self.config.expl_behavior != 'greedy':
@@ -125,6 +126,7 @@ class WorldModel(common.Module):
     self.heads['decoder'] = common.Decoder(shapes, **config.decoder)
     self.heads['reward'] = common.MLP([], **config.reward_head)
     self.heads['contact_reward'] = common.MLP([], **config.contact_reward_head)
+    self.heads['stacking_reward'] = common.MLP([], **config.stacking_reward_head)
     if config.pred_discount:
       self.heads['discount'] = common.MLP([], **config.discount_head)
     for name in config.grad_heads:
@@ -269,11 +271,12 @@ class ActorCritic(common.Module):
     self.critic_opt = common.Optimizer('critic', **self.config.critic_opt)
     self.rewnorm = common.StreamNorm(**self.config.reward_norm)
     self.contact_rewnorm = common.StreamNorm(**self.config.reward_norm)
+    self.stacking_rewnorm = common.StreamNorm(**self.config.reward_norm)
 
   def set_mode(self, mode):
     self._mode = mode
 
-  def train(self, world_model, start, is_terminal, reward_fn, contact_reward_fn):
+  def train(self, world_model, start, is_terminal, reward_fn, contact_reward_fn, stacking_reward_fn):
     metrics = {}
     hor = self.config.imag_horizon
     # The weights are is_terminal flags for the imagination start states.
@@ -286,7 +289,8 @@ class ActorCritic(common.Module):
       reward = reward_fn(seq)
       if self._mode == 'train':
         contact_reward = contact_reward_fn(seq)
-        reward = reward + contact_reward # + self.config.contact_reward_weight * contact_reward
+        stacking_reward = stacking_reward_fn(seq)
+        reward = reward + contact_reward + stacking_reward# + self.config.contact_reward_weight * contact_reward
       seq['reward'], mets1 = self.rewnorm(reward)
       mets1 = {f'reward_{k}': v for k, v in mets1.items()}
       target, mets2 = self.target(seq)
