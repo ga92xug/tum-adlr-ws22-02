@@ -21,7 +21,7 @@ class Agent(common.Module):
       self._expl_behavior = getattr(expl, config.expl_behavior)(
           self.config, self.act_space, self.wm, self.tfstep,
           lambda seq: self.wm.heads['reward'](seq['feat']).mode())
-          #lambda seq: self.wm.heads['contact_reward'](seq['feat']).mode())
+          #lambda seq: self.wm.heads['grab_reward'](seq['feat']).mode())
     self._mode = self.set_mode('train')
 
   def set_mode(self, mode):
@@ -69,14 +69,14 @@ class Agent(common.Module):
   def train(self, data, state=None):
     metrics = {}
     # print('train', data)
-    # contact_reward is in data
+    # grab_reward is in data
     state, outputs, mets = self.wm.train(data, state)
     metrics.update(mets)
     start = outputs['post']
     reward = lambda seq: self.wm.heads['reward'](seq['feat']).mode()
-    contact_reward = lambda seq: self.wm.heads['contact_reward'](seq['feat']).mode()
+    grab_reward = lambda seq: self.wm.heads['grab_reward'](seq['feat']).mode()
     metrics.update(self._task_behavior.train(
-        self.wm, start, data['is_terminal'], reward, contact_reward))
+        self.wm, start, data['is_terminal'], reward, grab_reward))
     if self.config.expl_behavior != 'greedy':
       mets = self._expl_behavior.train(start, outputs, data)[-1]
       metrics.update({'expl_' + key: value for key, value in mets.items()})
@@ -123,7 +123,7 @@ class WorldModel(common.Module):
     self.heads = {}
     self.heads['decoder'] = common.Decoder(shapes, **config.decoder)
     self.heads['reward'] = common.MLP([], **config.reward_head)
-    self.heads['contact_reward'] = common.MLP([], **config.contact_reward_head)
+    self.heads['grab_reward'] = common.MLP([], **config.grab_reward_head)
     if config.pred_discount:
       self.heads['discount'] = common.MLP([], **config.discount_head)
     for name in config.grad_heads:
@@ -272,7 +272,7 @@ class ActorCritic(common.Module):
   def set_mode(self, mode):
     self._mode = mode
 
-  def train(self, world_model, start, is_terminal, reward_fn, contact_reward_fn):
+  def train(self, world_model, start, is_terminal, reward_fn, grab_reward_fn):
     metrics = {}
     hor = self.config.imag_horizon
     # The weights are is_terminal flags for the imagination start states.
@@ -284,8 +284,8 @@ class ActorCritic(common.Module):
       seq = world_model.imagine(self.actor, start, is_terminal, hor)
       reward = reward_fn(seq)
       if self._mode == 'train':
-        contact_reward = contact_reward_fn(seq)
-        reward = reward + contact_reward # + self.config.contact_reward_weight * contact_reward
+        grab_reward = grab_reward_fn(seq)
+        reward = reward + grab_reward # + self.config.grab_reward_weight * grab_reward
       seq['reward'], mets1 = self.rewnorm(reward)
       mets1 = {f'reward_{k}': v for k, v in mets1.items()}
       target, mets2 = self.target(seq)
@@ -360,7 +360,7 @@ class ActorCritic(common.Module):
     # Discount:   [d0]  [d1]  [d2]   d3
     # Targets:     t0    t1    t2
     reward = tf.cast(seq['reward'], tf.float32)
-    # contact_reward = tf.cast(seq['contact_reward'], tf.float32)
+    # grab_reward = tf.cast(seq['grab_reward'], tf.float32)
     disc = tf.cast(seq['discount'], tf.float32)
     value = self._target_critic(seq['feat']).mode()
     # Skipping last time step because it is used for bootstrapping.

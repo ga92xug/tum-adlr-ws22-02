@@ -111,7 +111,7 @@ class DMC:
     spaces = {
         'image': gym.spaces.Box(0, 255, self._size + (3,), dtype=np.uint8),
         'reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
-        'contact_reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
+        'grab_reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
         'is_first': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'is_last': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'is_terminal': gym.spaces.Box(0, 1, (), dtype=np.bool),
@@ -165,7 +165,8 @@ class DMC:
             con_object1, con_object2 = con_object2, con_object1
 
         # TODO do we need to check the contact_force
-        if any(sim.data.contact_force(i)[0] > 0) and (con_object1 in fingertips) and (con_object2 in boxes):
+        # any(sim.data.contact_force(i)[0] > 0) and
+        if (con_object1 in fingertips) and (con_object2 in boxes):
             #print('One finger and one box involved')
             contacts += 1
             contact_forces += np.sum(sim.data.contact_force(i)[0])
@@ -181,7 +182,6 @@ class DMC:
                     fingers_involved.append(con_object1 + 1)
                 if con_object1 - 1 in fingertips:
                     fingers_involved.append(con_object1 - 1)
-
                 touched_boxes.append(con_object2)
                 
             else:
@@ -199,7 +199,7 @@ class DMC:
   def step(self, action):
     assert np.isfinite(action['action']).all(), action['action']
     reward = 0.0
-    contact_rewards = 0.0
+    grab_rewards = 0.0
     contacts = 0
     contact_forces = 0
     
@@ -209,8 +209,8 @@ class DMC:
 
       # calculate contact reward
       ncon = self._env.physics.data.ncon
-      contact_reward, contact, contact_force = self.calculate_contacts(ncon)
-      contact_rewards += contact_reward
+      grab_reward, contact, contact_force = self.calculate_contacts(ncon)
+      grab_rewards += grab_reward
       contacts += contact
       contact_forces += contact_force
       
@@ -221,7 +221,7 @@ class DMC:
     assert time_step.discount in (0, 1)
     obs = {
         'reward': reward,
-        'contact_reward': contact_reward,
+        'grab_reward': grab_rewards,
         'is_first': False,
         'is_last': time_step.last(),
         'is_terminal': time_step.discount == 0,
@@ -240,7 +240,7 @@ class DMC:
     time_step = self._env.reset()
     obs = {
         'reward': 0.0,
-        'contact_reward': 0.0,
+        'grab_reward': 0.0,
         'is_first': True,
         'is_last': False,
         'is_terminal': False,
