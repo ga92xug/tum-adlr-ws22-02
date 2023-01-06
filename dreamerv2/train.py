@@ -102,7 +102,7 @@ def main():
   def per_episode(ep, mode):
     length = len(ep['reward']) - 1
     score = float(ep['reward'].astype(np.float64).sum())
-    grab_reward = float(ep['contact_reward'].astype(np.float64).sum())
+    grab_reward = float(ep['grab_reward'].astype(np.float64).sum())
     stacking_reward = float(ep['stacking_reward'].astype(np.float64).sum())
     # contacts
     contacts = ep['log_contacts'].astype(np.uint32).sum()

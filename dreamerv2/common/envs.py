@@ -116,7 +116,7 @@ class DMC:
     spaces = {
         'image': gym.spaces.Box(0, 255, self._size + (3,), dtype=np.uint8),
         'reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
-        'contact_reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
+        'grab_reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
         'stacking_reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
         'is_first': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'is_last': gym.spaces.Box(0, 1, (), dtype=np.bool),
@@ -226,7 +226,7 @@ class DMC:
   def step(self, action):
     assert np.isfinite(action['action']).all(), action['action']
     reward = 0.0
-    contact_rewards = 0.0
+    grab_rewards = 0.0
     contacts = 0
     contact_forces = 0
     stacking_rewards = 0.0
@@ -238,9 +238,9 @@ class DMC:
 
       # calculate contact reward
       ncon = self._env.physics.data.ncon
-      contact_reward, contact, contact_force = self.calculate_contacts(ncon)
+      grab_reward, contact, contact_force = self.calculate_contacts(ncon)
       stacking_reward, box_pos, box_pos_z = self.calculate_box_pos()
-      contact_rewards += contact_reward
+      grab_rewards += grab_reward
       stacking_rewards += stacking_reward
       contacts += contact
       contact_forces += contact_force
@@ -253,7 +253,7 @@ class DMC:
     assert time_step.discount in (0, 1)
     obs = {
         'reward': reward,
-        'contact_reward': contact_rewards,
+        'grab_reward': grab_rewards,
         'stacking_reward': stacking_rewards,
         'is_first': False,
         'is_last': time_step.last(),
@@ -274,7 +274,7 @@ class DMC:
     time_step = self._env.reset()
     obs = {
         'reward': 0.0,
-        'contact_reward': 0.0,
+        'grab_reward': 0.0,
         'stacking_reward': 0.0,
         'is_first': True,
         'is_last': False,

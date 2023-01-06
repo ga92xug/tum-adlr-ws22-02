@@ -210,7 +210,7 @@ class Encoder(common.Module):
     # print('Encoder input shapes:', self.shapes)
     # print('Encoder batch dims:', batch_dims)
     #Encoder key: image
-    # Encoder input shapes: {'image': (64, 64, 3), 'reward': (), 'contact_reward': (), 'is_first': (), 'is_last': (), 'is_terminal': (), 'log_contacts': (), 'log_contact_forces': (), 'arm_pos': (8, 2), 'arm_vel': (8,), 'touch': (5,), 'hand_pos': (4,), 'box_pos': (4, 4), 'box_vel': (12,), 'target_pos': (2,)}
+    # Encoder input shapes: {'image': (64, 64, 3), 'reward': (), 'grab_reward': (), 'is_first': (), 'is_last': (), 'is_terminal': (), 'log_contacts': (), 'log_contact_forces': (), 'arm_pos': (8, 2), 'arm_vel': (8,), 'touch': (5,), 'hand_pos': (4,), 'box_pos': (4, 4), 'box_vel': (12,), 'target_pos': (2,)}
     # Encoder batch dims: (1,)
     data = {
         k: tf.reshape(v, (-1,) + tuple(v.shape)[len(batch_dims):])

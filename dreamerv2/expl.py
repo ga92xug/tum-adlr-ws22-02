@@ -26,7 +26,7 @@ class Random(common.Module):
 class Plan2Explore(common.Module):
 
   def __init__(self, config, act_space, wm, tfstep, reward):
-    # self.obs = {'contact_reward': None}
+    # self.obs = {'grab_reward': None}
     self.config = config
     self.reward = reward
     self.wm = wm
@@ -49,7 +49,7 @@ class Plan2Explore(common.Module):
     self.intr_rewnorm = common.StreamNorm(**self.config.expl_reward_norm)
     self.guide_rewnorm = common.StreamNorm(**self.config.expl_reward_norm)
 
-    self.contact_reward = lambda seq: self.wm.heads['contact_reward'](seq['feat']).mode()
+    self.grab_reward = lambda seq: self.wm.heads['grab_reward'](seq['feat']).mode()
     self.stacking_reward = lambda seq: self.wm.heads['stacking_reward'](seq['feat']).mode()
 
   def set_mode(self, mode):
@@ -58,7 +58,7 @@ class Plan2Explore(common.Module):
 
   def train(self, start, context, data):
     #print('train in expl.py')
-    # in data is contact_reward
+    # in data is grab_reward
     metrics = {}
     stoch = start['stoch']
     if self.config.rssm.discrete:
@@ -76,7 +76,7 @@ class Plan2Explore(common.Module):
       inputs = tf.concat([inputs, action], -1)
     metrics.update(self._train_ensemble(inputs, target))
     metrics.update(self.ac.train(
-        self.wm, start, data['is_terminal'], self._intr_reward, self.contact_reward, self.stacking_reward))
+        self.wm, start, data['is_terminal'], self._intr_reward, self.grab_reward, self.stacking_reward))
     return None, metrics
 
   def _intr_reward(self, seq):
@@ -110,10 +110,10 @@ class Plan2Explore(common.Module):
     if self.config.expl_guide_scale and False:
       # passt noch nicht
       # print('We are in in guide scale')
-      # self.obs[contact_reward] tf.Tensor([0.], shape=(1,), dtype=float32)
-      #print('contact_reward', contact_reward)
-      # print('norm', self.guide_rewnorm(contact_reward)[0])
-      # reward += self.config.expl_guide_scale * contact_reward
+      # self.obs[grab_reward] tf.Tensor([0.], shape=(1,), dtype=float32)
+      #print('grab_reward', grab_reward)
+      # print('norm', self.guide_rewnorm(grab_reward)[0])
+      # reward += self.config.expl_guide_scale * grab_reward
       pass
     if self.config.expl_extr_scale:
       reward += self.config.expl_extr_scale * self.extr_rewnorm(
