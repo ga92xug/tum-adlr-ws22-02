@@ -105,8 +105,8 @@ class DMC:
     self._camera = camera
     self._ignored_keys = []
     for key, value in self._env.observation_spec().items():
-      print("possible observations:\n")
-      print(key)
+      #print("possible observations:\n")
+      #print(key)
       if value.shape == (0,):
         print(f"Ignoring empty observation key '{key}'.")
         self._ignored_keys.append(key)
@@ -171,8 +171,9 @@ class DMC:
         if con_object2 in fingertips:
             con_object1, con_object2 = con_object2, con_object1
 
-        # TODO do we need to check the contact_force
-        if any(sim.data.contact_force(i)[0] > 0) and (con_object1 in fingertips) and (con_object2 in boxes):
+        # contact_force
+        # any(sim.data.contact_force(i)[0] > 0) and
+        if (con_object1 in fingertips) and (con_object2 in boxes):
             #print('One finger and one box involved')
             contacts += 1
             contact_forces += np.sum(sim.data.contact_force(i)[0])
