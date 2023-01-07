@@ -28,9 +28,13 @@ defaults:
   log_keys_max: '^$'
   precision: 16
   jit: True
+
+  # Reward
   reward_weight: 1.0
   grab_reward_weight: 0.0
   stacking_reward_weight: 0.0 
+  start_external_reward: 10000
+
 
   # Agent
   clip_rewards: tanh
