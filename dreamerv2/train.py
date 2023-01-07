@@ -201,6 +201,13 @@ def main():
   train_driver.on_step(train_step)
 
   while step < config.steps:
+    if step >= 10000:
+      # linear fade-in from grab to stacking reward
+      config = config.update({
+          'reward_weight': 1.0,
+          'grab_reward_weight': (1.0 - step.value / config.steps),
+          'stacking_reward_weight': (0.0 + step.value / config.steps)})
+
     logger.write()
     print('Start evaluation.')
     agnt.set_mode('eval')

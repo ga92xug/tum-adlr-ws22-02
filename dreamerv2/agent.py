@@ -271,8 +271,9 @@ class ActorCritic(common.Module):
     self.actor_opt = common.Optimizer('actor', **self.config.actor_opt)
     self.critic_opt = common.Optimizer('critic', **self.config.critic_opt)
     self.rewnorm = common.StreamNorm(**self.config.reward_norm)
-    self.contact_rewnorm = common.StreamNorm(**self.config.reward_norm)
+    self.grab_rewnorm = common.StreamNorm(**self.config.reward_norm)
     self.stacking_rewnorm = common.StreamNorm(**self.config.reward_norm)
+    self.combiner_rewnorm = common.StreamNorm(**self.config.reward_norm)
 
   def set_mode(self, mode):
     self._mode = mode
@@ -289,18 +290,42 @@ class ActorCritic(common.Module):
       seq = world_model.imagine(self.actor, start, is_terminal, hor)
       reward = reward_fn(seq)
       if self._mode == 'train':
+        
+        # compute additional rewards
         grab_reward = grab_reward_fn(seq)
         stacking_reward = stacking_reward_fn(seq)
-        reward = reward + grab_reward + stacking_reward# + self.config.grab_reward_weight * grab_reward
-      seq['reward'], mets1 = self.rewnorm(reward)
-      mets1 = {f'reward_{k}': v for k, v in mets1.items()}
+
+        # norm of individual rewards
+        normal_reward, normal_mets1 = self.rewnorm(reward)
+        grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
+        stacking_reward, stacking_mets1 = self.stacking_rewnorm(stacking_reward)
+        
+        # combine rewards and normalize
+        seq_rewards = self.config.reward_weight * normal_reward \
+          + self.config.grab_reward_weight * grab_reward \
+          + self.config.stacking_reward_weight * stacking_reward
+        seq['reward'], combiner_mets1 = self.combiner_rewnorm(seq_rewards)
+        
+        # metrics
+        normal_mets1 = {f'normal_reward_{k}': v for k, v in normal_mets1.items()}
+        grab_mets1 = {f'grab_reward_{k}': v for k, v in grab_mets1.items()}
+        stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
+        combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
+
+      else:
+        seq['reward'], mets1 = self.rewnorm(reward)
+        mets1 = {f'reward_{k}': v for k, v in mets1.items()}
       target, mets2 = self.target(seq)
       actor_loss, mets3 = self.actor_loss(seq, target)
     with tf.GradientTape() as critic_tape:
       critic_loss, mets4 = self.critic_loss(seq, target)
     metrics.update(self.actor_opt(actor_tape, actor_loss, self.actor))
     metrics.update(self.critic_opt(critic_tape, critic_loss, self.critic))
-    metrics.update(**mets1, **mets2, **mets3, **mets4)
+    if self._mode == 'train':
+      metrics.update(**normal_mets1, **grab_mets1, **stacking_mets1, **combined_mets1, \
+        **mets2, **mets3, **mets4)
+    else:
+      metrics.update(**mets1, **mets2, **mets3, **mets4)
     self.update_slow_target()  # Variables exist after first forward pass.
     return metrics
 
