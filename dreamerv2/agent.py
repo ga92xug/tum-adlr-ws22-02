@@ -290,7 +290,6 @@ class ActorCritic(common.Module):
       seq = world_model.imagine(self.actor, start, is_terminal, hor)
       reward = reward_fn(seq)
       if self._mode == 'train':
-        
         # compute additional rewards
         grab_reward = grab_reward_fn(seq)
         stacking_reward = stacking_reward_fn(seq)
@@ -313,8 +312,10 @@ class ActorCritic(common.Module):
         combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
 
       else:
+        # eval
         seq['reward'], mets1 = self.rewnorm(reward)
         mets1 = {f'reward_{k}': v for k, v in mets1.items()}
+        
       target, mets2 = self.target(seq)
       actor_loss, mets3 = self.actor_loss(seq, target)
     with tf.GradientTape() as critic_tape:

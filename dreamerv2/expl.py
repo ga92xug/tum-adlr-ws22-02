@@ -107,14 +107,6 @@ class Plan2Explore(common.Module):
     #print('self.intr_rewnorm(disag)[0]', self.intr_rewnorm(disag)[0])
     # shape=(16, 100), dtype=float32) disag.shape (16, 100)
     reward = self.config.expl_intr_scale * self.intr_rewnorm(disag)[0]
-    if self.config.expl_guide_scale and False:
-      # passt noch nicht
-      # print('We are in in guide scale')
-      # self.obs[grab_reward] tf.Tensor([0.], shape=(1,), dtype=float32)
-      #print('grab_reward', grab_reward)
-      # print('norm', self.guide_rewnorm(grab_reward)[0])
-      # reward += self.config.expl_guide_scale * grab_reward
-      pass
     if self.config.expl_extr_scale:
       reward += self.config.expl_extr_scale * self.extr_rewnorm(
           self.reward(seq))[0]
