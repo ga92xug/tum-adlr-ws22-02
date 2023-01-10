@@ -250,10 +250,6 @@ class DMC:
       contacts += contact
       contact_forces += contact_force
       box_pos_z_mean += np.mean(box_pos_z)
-      print("Box_pos_z: "+str(box_pos_z))
-      print("Box_pos_z_mean: " +str(np.mean(box_pos_z)))
-      print("Box_pos_z_mean_total: "+str(box_pos_z_mean))
-      time.sleep(2)
       
           
       if time_step.last():
