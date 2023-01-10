@@ -214,12 +214,15 @@ class DMC:
     box_names = ['box' + str(b) for b in range(n_boxes)]
     box_pos = sim.body_2d_pose(box_names)[:,:2]
     box_pos_z = box_pos[:,1]
+    box_pos_x = box_pos[:,0]
     #print(box_pos_z)
     
     for i in range(n_boxes):
         
         #if box_pos_z[i] > 0.022: # 0.022 box height on ground
-        if box_pos_z[i] > 0.065: # total box height ca. 0.044 -> ca. 0.066 for box stacked on other box
+        # x pos in between -.382843 and .382843 to not touch wall
+        # (values show wall center at x-pos)
+        if box_pos_z[i] > 0.0655 and box_pos_z[i]<0.3 and box_pos_x[i]>(-0.682843+0.3) and box_pos_x[i]<(0.682843-0.3): # total box height ca. 0.044 -> ca. 0.066 for box stacked on other box
             reward += 1
 
     return reward, box_pos, box_pos_z
