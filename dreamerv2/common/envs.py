@@ -8,6 +8,7 @@ import cloudpickle
 import gym
 import numpy as np
 import warnings
+import time
 
 
 class GymWrapper:
@@ -252,6 +253,7 @@ class DMC:
       print("Box_pos_z: "+str(box_pos_z))
       print("Box_pos_z_mean: " +str(np.mean(box_pos_z)))
       print("Box_pos_z_mean_total: "+str(box_pos_z_mean))
+      time.sleep(2)
       
           
       if time_step.last():
