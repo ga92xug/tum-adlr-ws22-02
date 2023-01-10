@@ -110,8 +110,6 @@ def main():
     contact_force_sum = float(ep['log_contact_forces'].astype(np.float64).sum())
     contact_force_mean = float(ep['log_contact_forces'].astype(np.float64).mean())
     # Box Pos:
-    print(ep['log_box_pos_z_mean'])
-    time.sleep(4)
     box_pos_z_mean = float(ep['log_box_pos_z_mean'].astype(np.float64).mean())
 
     print(f'{mode.title()} episode has {length} steps and return {score:.1f}, grab reward {grab_reward:.1f} and stacking reward {stacking_reward:.1f}.')
