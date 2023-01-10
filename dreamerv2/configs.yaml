@@ -168,8 +168,8 @@ dmc_proprio:
 dmc_proprio+vision:
 
   task: dmc_walker_walk
-  encoder: {mlp_keys: 'touch', cnn_keys: 'image'}
-  decoder: {mlp_keys: 'touch', cnn_keys: 'image'}
+  encoder: {mlp_keys: '.*', cnn_keys: 'image'}
+  decoder: {mlp_keys: '.*', cnn_keys: 'image'}
   action_repeat: 2
   eval_every: 1e4
   prefill: 1000
