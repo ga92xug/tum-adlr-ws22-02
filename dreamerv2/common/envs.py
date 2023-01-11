@@ -197,8 +197,9 @@ class DMC:
                 if (con_object1 not in fingers_involved) and (con_object2 in touched_boxes):
                     # new finger is involved and box is already touched
                     box_name = sim.model.id2name(i, 'geom')
-                    box_height = sim.named.data.geom_xpos[box_name, 'z']
-                    if box_height < 0.065:
+                    box_pos_z = sim.named.data.geom_xpos[box_name, 'z']
+                    box_pos_x = sim.named.data.geom_xpos[box_name, 'x']
+                    if box_pos_z > 0.0655 and box_pos_z<0.3 and box_pos_x>(-0.682843+0.3) and box_pos_x<(0.682843-0.3):
                         reward = 1
                         return reward, contacts, contact_forces
                 elif con_object2 not in touched_boxes:
@@ -262,8 +263,8 @@ class DMC:
 
       # calculate contact reward
       ncon = self._env.physics.data.ncon
-      _, contact, contact_force = self.calculate_contacts(ncon)
-      grab_reward = self.calculate_grab_reward()
+      grab_reward, contact, contact_force = self.calculate_contacts(ncon)
+      #grab_reward = self.calculate_grab_reward()
       stacking_reward, box_pos, box_pos_z = self.calculate_box_pos()
       grab_rewards += grab_reward
       stacking_rewards += stacking_reward
