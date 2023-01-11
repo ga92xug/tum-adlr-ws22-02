@@ -196,13 +196,36 @@ class DMC:
                 # one finger is already involved
                 if (con_object1 not in fingers_involved) and (con_object2 in touched_boxes):
                     # new finger is involved and box is already touched
-                    reward = 1
-                    return reward, contacts, contact_forces
+                    box_name = sim.model.id2name(i, 'geom')
+                    box_height = sim.named.data.geom_xpos[box_name, 'z']
+                    if box_height < 0.065:
+                        reward = 1
+                        return reward, contacts, contact_forces
                 elif con_object2 not in touched_boxes:
                     # new box is touched and we don't care about which finger is involved
                     touched_boxes.append(con_object2)
 
     return reward, contacts, contact_forces
+
+
+
+  def calculate_grab_reward(self):
+    _CLOSE = .03    # (Meters) Distance below which a thing is considered close.
+    _FAR = .065       # (Meters) Distance above which a thing is considered far.
+    # site: grasp, pinch
+    sim = self._env.physics
+    n_boxes = int(self.task.split("_")[1])
+    #print("Box Pos Z Values:")
+    box_names = ['box' + str(b) for b in range(n_boxes)]
+    box_pos = sim.body_2d_pose(box_names)[:,:2]
+    box_pos_z = box_pos[:,1]
+
+    for box, id in zip(box_names, range(n_boxes)):
+      if sim.site_distance('pinch', box) < _CLOSE and box_pos_z[id] > _FAR:
+          reward = 1
+          return reward
+
+    return 0.0
 
   def calculate_box_pos(self):
     reward = 0
@@ -239,7 +262,8 @@ class DMC:
 
       # calculate contact reward
       ncon = self._env.physics.data.ncon
-      grab_reward, contact, contact_force = self.calculate_contacts(ncon)
+      _, contact, contact_force = self.calculate_contacts(ncon)
+      grab_reward = self.calculate_grab_reward()
       stacking_reward, box_pos, box_pos_z = self.calculate_box_pos()
       grab_rewards += grab_reward
       stacking_rewards += stacking_reward

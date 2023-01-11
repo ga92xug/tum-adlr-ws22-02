@@ -30,10 +30,10 @@ defaults:
   jit: True
 
   # Reward
-  reward_weight: 1.0
-  grab_reward_weight: 0.0
+  reward_weight: 0.0
+  grab_reward_weight: 1.0
   stacking_reward_weight: 0.0 
-  start_external_reward: 10000
+  start_external_reward: 0
 
 
   # Agent
