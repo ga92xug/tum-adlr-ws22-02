@@ -220,9 +220,11 @@ class DMC:
     box_names = ['box' + str(b) for b in range(n_boxes)]
     box_pos = sim.body_2d_pose(box_names)[:,:2]
     box_pos_z = box_pos[:,1]
+    box_pos_x = box_pos[:,0]
 
     for box, id in zip(box_names, range(n_boxes)):
-      if sim.site_distance('pinch', box) < _CLOSE and box_pos_z[id] > _FAR:
+      if sim.site_distance('pinch', box) < _CLOSE \
+        and box_pos_z[id] > 0.0655 and box_pos_z[id]<0.3 and box_pos_x[id]>(-0.682843+0.3) and box_pos_x[id]<(0.682843-0.3):
           reward = 1
           return reward
 
