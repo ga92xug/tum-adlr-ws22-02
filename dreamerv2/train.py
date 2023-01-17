@@ -201,6 +201,8 @@ def main():
   train_driver.on_step(train_step)
 
   while step < config.steps:
+    [env.set_current_step(step.value) for env in train_envs]
+    [env.set_current_step(step.value) for env in eval_envs]
     if step >= config.start_external_reward and False:
       # linear fade-in from grab to stacking reward
       config = config.update({
