@@ -427,7 +427,7 @@ class DMC:
         'image': self._env.physics.render(*self._size, camera_id=self._camera),
         'log_contacts': contacts,
         'log_contact_forces': contact_forces,
-        'log_box_pos_z_mean': box_pos_z_total,
+        'log_box_pos_z_mean': box_pos_z_mean,
         #'last_box_pos_z': box_pos_z_total,
     }
     obs.update({
