@@ -389,7 +389,7 @@ class DMC:
         # discard if out of bounds from walls --> no proper stack
         for j in box_names:
             print(sim.site_distance("box0", j))
-            print(sim.body_2d_pose("box"+(str(j))))
+            print(sim.body_2d_pose(j))
             time.sleep(3)
         if (box_pos_z[i] > 0.065) and box_pos_z[i]<0.18:
             for j in range(n_boxes):
