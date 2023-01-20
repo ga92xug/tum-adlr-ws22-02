@@ -391,7 +391,7 @@ class DMC:
       time_step = self._env.step(action['action'])
       reward += time_step.reward or 0.0
       print(time_step.observation['box_pos'])
-          time.sleep(3)
+      time.sleep(3)
       
       # calculate contact reward
       ncon = self._env.physics.data.ncon
