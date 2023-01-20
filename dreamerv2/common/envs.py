@@ -362,7 +362,6 @@ class DMC:
     box_pos = sim.body_2d_pose(box_names)[:,:2]
     box_pos_z = box_pos[:,1]
     box_pos_x = box_pos[:,0]
-    print(self._env.obs_space.items())
     #print(box_pos_z)
     
     for i in range(n_boxes):
