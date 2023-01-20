@@ -387,10 +387,6 @@ class DMC:
         # Stacking reward version 2:
         # add reward if height is according and other box is below and in range (fulfilling stacking condition)
         # discard if out of bounds from walls --> no proper stack
-        for j in box_names:
-            print(sim.site_distance("box0", j))
-            print(sim.body_2d_pose(j))
-            time.sleep(3)
         if (box_pos_z[i] > 0.065) and box_pos_z[i]<0.18:
             for j in range(n_boxes):
                 if box_pos_z[i] > box_pos_z[j] + 0.04: #ca. one box height
@@ -404,9 +400,6 @@ class DMC:
                     if prev_ts.site_distance('box'+str(j), 'box'+str(i)) < 0.05:
                         if (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)):
                             reward -= 1
-        print(box_pos_z)
-        print(reward)
-        time.sleep(1)
         
         
     return reward, box_pos, box_pos_z
