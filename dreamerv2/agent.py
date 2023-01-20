@@ -295,17 +295,17 @@ class ActorCritic(common.Module):
         stacking_reward = stacking_reward_fn(seq)
 
         # norm of individual rewards
-        #normal_reward, normal_mets1 = self.rewnorm(reward)
+        normal_reward, normal_mets1 = self.rewnorm(reward)
         grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
         # grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
         stacking_reward, stacking_mets1 = self.stacking_rewnorm(stacking_reward)
         
         # combine rewards and normalize
         #seq['reward'] = grab_reward
-        #seq_rewards = self.config.reward_weight * normal_reward \
-        seq_rewards = self.config.grab_reward_weight * grab_reward + self.config.stacking_reward_weight * stacking_reward
+        seq_rewards = self.config.reward_weight * normal_reward \
+            + self.config.grab_reward_weight * grab_reward \
+            + self.config.stacking_reward_weight * stacking_reward
           
-        print(seq_rewards)
         seq['reward'], combiner_mets1 = self.combiner_rewnorm(seq_rewards)
         
         # metrics
