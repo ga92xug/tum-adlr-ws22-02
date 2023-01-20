@@ -292,9 +292,7 @@ class ActorCritic(common.Module):
       if self._mode == 'train':
         # compute additional rewards
         grab_reward = grab_reward_fn(seq)
-        for key in seq:
-            print(key)
-            print(seq[key].shape)
+        print(is_terminal)
         # stacking_reward = stacking_reward_fn(seq)
 
         # norm of individual rewards
