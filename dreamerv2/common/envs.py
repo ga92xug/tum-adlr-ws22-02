@@ -296,26 +296,30 @@ class DMC:
     hand_pos = sim.body_2d_pose('hand')[:2]
     hand_pos_x = hand_pos[0]
     
-    
+    distances_x = []
     for box1, id in zip(box_names, range(n_boxes)):
       # site: grasp, pinch
       # one finger left one finger right
       distance_x = np.abs([box_pos_x[id] - hand_pos_x])
+      distances_x.append(distance_x)
       # print('distance_x', distance_x)
-      if sim.site_distance('pinch', box1) < _CLOSE and distance_x < 0.044:
+      # previous distance_x < 0.044
+      if sim.site_distance('pinch', box1) < _CLOSE and distance_x < 0.09:
           reward = 1
-          return reward
-    return 0.0
+          return reward, distance_x
+
+    return 0.0, np.min(distances_x)
 
 
   def learn_to_grab_reward(self, current_step):
     ncon = self._env.physics.data.ncon
     # learn close to box
-    if current_step < 100000:
+    if current_step < 500000:
         contacts = self.touch_reward(ncon, learn_lift=False)
-        return (self.finger_close_reward(), contacts[1], contacts[2])
+        output = self.finger_close_reward()
+        return (output[0], contacts[1], output[1])
     # learn contact with box
-    elif current_step < 500000:
+    elif current_step < 1000000:
         return self.touch_reward(ncon, learn_lift=False)
     # learn lift box
     else: # current_step < 1000000:
