@@ -294,7 +294,7 @@ class ActorCritic(common.Module):
         grab_reward = grab_reward_fn(seq)
         for key in seq:
             print(key)
-            print(seq['key'].shape)
+            print(seq[key].shape)
         # stacking_reward = stacking_reward_fn(seq)
 
         # norm of individual rewards
