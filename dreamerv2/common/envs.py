@@ -352,7 +352,7 @@ class DMC:
     return 0.0
 
   def calculate_box_pos(self, prev_ts_box_pos):
-    box_height_threshold = 0.002
+    box_height_threshold = 0.001
     reward = 0
     sim = self._env.physics
     # fingertips = [13,14,17,18]
@@ -363,9 +363,6 @@ class DMC:
     box_pos = sim.body_2d_pose(box_names)[:,:2]
     box_pos_z = box_pos[:,1]
     box_pos_x = box_pos[:,0]
-    #print(box_pos_z)
-    #print("Previous Time Step Box Pos:")
-    #print(prev_ts_box_pos[:,:2][:,1])
     prev_box_pos_z = prev_ts_box_pos[:, :2][:,1]
     
     for i in range(n_boxes):
@@ -373,15 +370,14 @@ class DMC:
         #if box_pos_z[i] > 0.022: # 0.022 box height on ground
         # x pos in between -.382843 and .382843 to not touch wall
         # (values show wall center at x-pos)
-        print("Prev: "+str(prev_box_pos_z))
-        print(box_pos_z)
+        #print("Prev: "+str(prev_box_pos_z))
+        #print(box_pos_z)
         if (box_pos_z[i] > 0.0655) and (box_pos_z[i]<0.19) and (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)): # total box height ca. 0.044 -> ca. 0.066 for box stacked on other box
             if box_pos_z[i] > (prev_box_pos_z[i] + box_height_threshold):
                 reward += 1
             if (box_pos_z[i] + box_height_threshold) < prev_box_pos_z[i]:
                 reward -= 1
-        print(reward)
-        time.sleep(2)
+
     return reward, box_pos, box_pos_z
 
   def step(self, action):
