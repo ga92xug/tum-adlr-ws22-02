@@ -364,6 +364,8 @@ class DMC:
     box_pos_x = box_pos[:,0]
     #print(box_pos_z)
     
+    print("Box_pos_func: "+str(box_pos))
+    
     for i in range(n_boxes):
         
         #if box_pos_z[i] > 0.022: # 0.022 box height on ground
@@ -388,9 +390,7 @@ class DMC:
     for i in range(self._action_repeat):
       time_step = self._env.step(action['action'])
       reward += time_step.reward or 0.0
-      for key in time_step.observation:
-          print(key)
-          print(time_step.observation[key].shape)
+      print(time_step.observation['box_pos'])
           time.sleep(3)
       
       # calculate contact reward
