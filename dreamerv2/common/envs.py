@@ -388,8 +388,10 @@ class DMC:
     for i in range(self._action_repeat):
       time_step = self._env.step(action['action'])
       reward += time_step.reward or 0.0
-      print(time_step.observation)
-      time.sleep(10)
+      for key in time_step.observation:
+          print(key)
+          print(time_step.observation.shape)
+          time.sleep(3)
       
       # calculate contact reward
       ncon = self._env.physics.data.ncon
