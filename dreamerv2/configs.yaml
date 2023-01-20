@@ -13,7 +13,8 @@ defaults:
   action_repeat: 1
   steps: 1e8
   log_every: 1e4
-  eval_every: 1e5
+  # eval_every: 1e5
+  eval_every: 1e6
   eval_eps: 1
   prefill: 10000
   pretrain: 1

@@ -289,7 +289,7 @@ class ActorCritic(common.Module):
     with tf.GradientTape() as actor_tape:
       seq = world_model.imagine(self.actor, start, is_terminal, hor)
       reward = reward_fn(seq)
-      if self._mode == 'train':
+      if self._mode == 'explore':
         # compute additional rewards
         grab_reward = grab_reward_fn(seq)
         # stacking_reward = stacking_reward_fn(seq)
@@ -312,7 +312,10 @@ class ActorCritic(common.Module):
         grab_mets1 = {f'grab_reward_{k}': v for k, v in grab_mets1.items()}
         # stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
         # combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
-
+      elif self._mode == 'train':
+        # train
+        seq['reward'], mets1 = self.rewnorm(reward)
+        mets1 = {f'reward_{k}': v for k, v in mets1.items()}
       else:
         # eval
         seq['reward'], mets1 = self.rewnorm(reward)
@@ -324,7 +327,7 @@ class ActorCritic(common.Module):
       critic_loss, mets4 = self.critic_loss(seq, target)
     metrics.update(self.actor_opt(actor_tape, actor_loss, self.actor))
     metrics.update(self.critic_opt(critic_tape, critic_loss, self.critic))
-    if self._mode == 'train':
+    if self._mode == 'explore':
       metrics.update(**grab_mets1, **mets2, **mets3, **mets4)
       # metrics.update(**normal_mets1, **grab_mets1, **stacking_mets1, **combined_mets1, \
       #   **mets2, **mets3, **mets4)
