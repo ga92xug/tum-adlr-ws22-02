@@ -79,6 +79,7 @@ class DMC:
   def __init__(self, name, action_repeat=1, size=(64, 64), camera=None):
     self.fingertips = [13,14,17,18]
     self.boxes = [19,20,21,21]
+    self.current_step = 0
 
     os.environ['MUJOCO_GL'] = 'egl'
     self.interesting_geom = [13,14,17,18]
@@ -152,6 +153,9 @@ class DMC:
     return {'action': action}
 
   def calculate_contacts(self, number_contacts):
+    n_boxes = int(self.task.split("_")[1])
+    box_names = ['box' + str(b) for b in range(n_boxes)]
+    _FAR = .065
     reward = 0
     contacts = 0
     contact_forces = 0
@@ -197,13 +201,155 @@ class DMC:
                 # one finger is already involved
                 if (con_object1 not in fingers_involved) and (con_object2 in touched_boxes):
                     # new finger is involved and box is already touched
-                    reward = 1
-                    return reward, contacts, contact_forces
+                    box_name = sim.model.id2name(con_object2, 'geom')
+                    box_pos_z = sim.named.data.geom_xpos[box_name, 'z']
+                    box_pos_x = sim.named.data.geom_xpos[box_name, 'x']
+                    if box_pos_z > 0.0655 and box_pos_z<0.3 and box_pos_x>(-0.682843+0.3) and box_pos_x<(0.682843-0.3):
+                        # not touching other boxes
+                        distance_other = [sim.site_distance(box_name, box2) for box2 in box_names if box2 != box_name]
+                        if np.min(distance_other) > _FAR:
+                            reward = 1
+                            return reward, contacts, contact_forces
+
                 elif con_object2 not in touched_boxes:
                     # new box is touched and we don't care about which finger is involved
                     touched_boxes.append(con_object2)
 
     return reward, contacts, contact_forces
+
+
+  def touch_reward(self, number_contacts, learn_force=False, learn_lift=False):
+    n_boxes = int(self.task.split("_")[1])
+    box_names = ['box' + str(b) for b in range(n_boxes)]
+    far = .065
+    reward = 0
+    contacts = 0
+    contact_forces = 0
+    sim = self._env.physics
+    fingertips = self.fingertips
+    boxes = self.boxes
+    # fingertips = [13,14,17,18]
+    # boxes = [19,20,21,21]
+    touched_boxes = []
+    fingers_involved = []
+    
+    for i in range(number_contacts):
+        contact = sim.data.contact[i]
+        con_object1 = contact.geom1
+        con_object2 = contact.geom2
+
+        # swap if needed
+        if con_object2 in fingertips:
+            con_object1, con_object2 = con_object2, con_object1
+
+        # TODO do we need to check the contact_force
+        # any(sim.data.contact_force(i)[0] > 0) and
+        if (con_object1 in fingertips) and (con_object2 in boxes):
+            #print('One finger and one box involved')
+            contacts += 1
+            contact_forces += np.sum(sim.data.contact_force(i)[0])
+            # exactly one finger and one box is part of contact 
+            # (we don't want fingers to touch each other)
+
+            if len(fingers_involved) == 0:
+                # save first finger and box
+                fingers_involved.append(con_object1)
+                # append also the other part of the finger
+                if con_object1 + 1 in fingertips:
+                    fingers_involved.append(con_object1 + 1)
+                if con_object1 - 1 in fingertips:
+                    fingers_involved.append(con_object1 - 1)
+                touched_boxes.append(con_object2)
+                
+            else:
+                # one finger is already involved
+                if (con_object1 not in fingers_involved) and (con_object2 in touched_boxes):
+                    # new finger is involved and box is already touched
+                    if learn_lift:
+                        # box has to be lifted to get reward
+                        box_name = sim.model.id2name(con_object2, 'geom')
+                        box_pos_z = sim.named.data.geom_xpos[box_name, 'z']
+                        box_pos_x = sim.named.data.geom_xpos[box_name, 'x']
+                        if box_pos_z > 0.0655 and box_pos_z<0.3 and box_pos_x>(-0.682843+0.3) and box_pos_x<(0.682843-0.3):
+                            # not touching other boxes
+                            distance_other = [sim.site_distance(box_name, box2) for box2 in box_names if box2 != box_name]
+                            if np.min(distance_other) > far:
+                                reward = 1
+                                return reward, contacts, contact_forces
+                    else:
+                        # box only has to be touched to get reward
+                        reward = 1
+                        return reward, contacts, contact_forces
+
+                elif con_object2 not in touched_boxes:
+                    # new box is touched and we don't care about which finger is involved
+                    touched_boxes.append(con_object2)
+
+    return reward, contacts, contact_forces
+
+  def finger_close_reward(self):
+    _CLOSE = .02    # (Meters) Distance below which a thing is considered close.
+    sim = self._env.physics
+    n_boxes = int(self.task.split("_")[1])
+    box_names = ['box' + str(b) for b in range(n_boxes)]
+    box_pos = sim.body_2d_pose(box_names)[:,:2]
+    box_pos_x = box_pos[:,0]
+    hand_pos = sim.body_2d_pose('hand')[:2]
+    hand_pos_x = hand_pos[0]
+    
+    distances_x = []
+    for box1, id in zip(box_names, range(n_boxes)):
+      # site: grasp, pinch
+      # one finger left one finger right
+      distance_x = np.abs([box_pos_x[id] - hand_pos_x])
+      distances_x.append(distance_x)
+      # print('distance_x', distance_x)
+      # previous distance_x < 0.044
+      if sim.site_distance('pinch', box1) < _CLOSE and distance_x < 0.09:
+          reward = 1
+          return reward, distance_x
+
+    return 0.0, np.min(distances_x)
+
+
+  def learn_to_grab_reward(self, current_step):
+    ncon = self._env.physics.data.ncon
+    # learn close to box
+    if current_step < 500000:
+        contacts = self.touch_reward(ncon, learn_lift=False)
+        output = self.finger_close_reward()
+        return (output[0], contacts[1], output[1])
+    # learn contact with box
+    elif current_step < 1000000:
+        return self.touch_reward(ncon, learn_lift=False)
+    # learn lift box
+    else: # current_step < 1000000:
+        return self.touch_reward(ncon, learn_lift=True)
+
+
+  def calculate_grab_reward(self):
+    # ideas: increase distance to wall, increase distance to other boxes
+    _CLOSE = .03    # (Meters) Distance below which a thing is considered close.
+    _FAR = .065       # (Meters) Distance above which a thing is considered far.
+    # site: grasp, pinch
+    sim = self._env.physics
+    n_boxes = int(self.task.split("_")[1])
+    #print("Box Pos Z Values:")
+    box_names = ['box' + str(b) for b in range(n_boxes)]
+    box_pos = sim.body_2d_pose(box_names)[:,:2]
+    box_pos_z = box_pos[:,1]
+    box_pos_x = box_pos[:,0]
+
+    for box1, id in zip(box_names, range(n_boxes)):
+      if sim.site_distance('pinch', box1) < _CLOSE \
+        and box_pos_z[id] > 0.0655 and box_pos_z[id]<0.3 and box_pos_x[id]>(-0.682843+0.3) and box_pos_x[id]<(0.682843-0.3):
+          # not close to any other box
+          distance_other = [sim.site_distance(box1, box2) for box2 in box_names if box2 != box1]
+          if np.min(distance_other) > _FAR:
+              reward = 1
+              return reward
+
+    return 0.0
 
   def calculate_box_pos(self):
     reward = 0
@@ -229,6 +375,7 @@ class DMC:
     return reward, box_pos, box_pos_z
 
   def step(self, action):
+    #print("Current Step: ", self.current_step)
     assert np.isfinite(action['action']).all(), action['action']
     reward = 0.0
     grab_rewards = 0.0
@@ -243,7 +390,9 @@ class DMC:
 
       # calculate contact reward
       ncon = self._env.physics.data.ncon
-      grab_reward, contact, contact_force = self.calculate_contacts(ncon)
+      # grab_reward, contact, contact_force = self.calculate_contacts(ncon)
+      grab_reward, contact, contact_force = self.learn_to_grab_reward(self.current_step)
+      #grab_reward = self.calculate_grab_reward()
       stacking_reward, box_pos, box_pos_z = self.calculate_box_pos()
       grab_rewards += grab_reward
       stacking_rewards += stacking_reward
@@ -293,6 +442,9 @@ class DMC:
         k: v for k, v in dict(time_step.observation).items()
         if k not in self._ignored_keys})
     return obs
+
+  def set_current_step(self, step):
+      self.current_step = step
 
 
 class Atari:

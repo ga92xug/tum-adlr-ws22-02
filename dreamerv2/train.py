@@ -202,14 +202,16 @@ def main():
   train_driver.on_step(train_step)
 
   while step < config.steps:
-    if step >= config.start_external_reward:
+    [env.set_current_step(step.value) for env in train_envs]
+    [env.set_current_step(step.value) for env in eval_envs]
+    if step >= config.start_external_reward and False:
       # linear fade-in from grab to stacking reward
       config = config.update({
           'reward_weight': 0.0,
-          'grab_reward_weight': (1.0 - (step.value - config.start_external_reward)\
-                                / (config.steps - config.start_external_reward)),
-          'stacking_reward_weight': (0.0 + (step.value - config.start_external_reward)\
-                                / (config.steps - config.start_external_reward))
+          'grab_reward_weight': 1.0, #  - (step.value - config.start_external_reward)\
+                                #/ (config.steps - config.start_external_reward)),
+          'stacking_reward_weight': 0.0 #(0.0 + (step.value - config.start_external_reward)\
+                              #  / (config.steps - config.start_external_reward))
       })
 
     logger.write()
@@ -218,6 +220,7 @@ def main():
     logger.add(agnt.report(next(eval_dataset)), prefix='eval')
     eval_driver(eval_policy, episodes=config.eval_eps)
     print('Start training.')
+    
     agnt.set_mode('train')
     train_driver(train_policy, steps=config.eval_every)
     agnt.save(logdir / 'variables.pkl')
