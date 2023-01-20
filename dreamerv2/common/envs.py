@@ -383,11 +383,14 @@ class DMC:
     contact_forces = 0
     stacking_rewards = 0.0
     box_pos_z_mean = 0.0
+    box_pos_z_total = []
     
     for i in range(self._action_repeat):
       time_step = self._env.step(action['action'])
       reward += time_step.reward or 0.0
-
+      print(time_step.observation)
+      time.sleep(10)
+      
       # calculate contact reward
       ncon = self._env.physics.data.ncon
       # grab_reward, contact, contact_force = self.calculate_contacts(ncon)
@@ -399,6 +402,7 @@ class DMC:
       contacts += contact
       contact_forces += contact_force
       box_pos_z_mean += np.mean(box_pos_z)
+      box_pos_z_total.append(box_pos_z)
       
           
       if time_step.last():
@@ -416,6 +420,7 @@ class DMC:
         'log_contacts': contacts,
         'log_contact_forces': contact_forces,
         'log_box_pos_z_mean': box_pos_z_mean,
+        'last_box_pos_z': box_pos_z_total,
     }
     obs.update({
         k: v for k, v in dict(time_step.observation).items()
