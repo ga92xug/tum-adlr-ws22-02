@@ -351,7 +351,7 @@ class DMC:
 
     return 0.0
 
-  def calculate_box_pos(self, prev_ts_box_pos):
+  def calculate_box_pos(self, prev_ts_box_pos, prev_ts):
     box_height_threshold = 0.001
     reward = 0
     sim = self._env.physics
@@ -385,12 +385,25 @@ class DMC:
                 
         '''
         # Stacking reward version 2:
+        # add reward if height is according and other box is below and in range (fulfilling stacking condition)
+        # discard if out of bounds from walls --> no proper stack
+        for j in box_names:
+            print(sim.distance("box0", j))
+            print(sim.body_2d_pose("box"+(str(j))))
+            time.sleep(3)
         if (box_pos_z[i] > 0.065) and box_pos_z[i]<0.18:
             for j in range(n_boxes):
                 if box_pos_z[i] > box_pos_z[j] + 0.04: #ca. one box height
                     if sim.site_distance('box'+str(j), 'box'+str(i)) < 0.05:
                         if (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)):
                             reward += 1
+        # - reward if cond. was met before and isnt in new ts
+        elif (prev_box_pos_z[i] > 0.065 and prev_box_pos_z[i]<0.18):
+            for j in range(n_boxes):
+                if prev_box_pos_z[i] > prev_box_pos_z[j] + 0.04: #ca. one box height
+                    if prev_ts.site_distance('box'+str(j), 'box'+str(i)) < 0.05:
+                        if (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)):
+                            reward -= 1
         print(box_pos_z)
         print(reward)
         time.sleep(1)
@@ -413,6 +426,7 @@ class DMC:
       n_boxes = int(self.task.split("_")[1])
       box_names = ['box' + str(b) for b in range(n_boxes)]
       previous_timestep_box_pos = self._env.physics.body_2d_pose(box_names)
+      prev_ts = self._env.physics
       time_step = self._env.step(action['action'])
       reward += time_step.reward or 0.0
       
@@ -421,7 +435,7 @@ class DMC:
       # grab_reward, contact, contact_force = self.calculate_contacts(ncon)
       grab_reward, contact, contact_force = self.learn_to_grab_reward(self.current_step)
       #grab_reward = self.calculate_grab_reward()
-      stacking_reward, box_pos, box_pos_z = self.calculate_box_pos(previous_timestep_box_pos)
+      stacking_reward, box_pos, box_pos_z = self.calculate_box_pos(previous_timestep_box_pos, prev_ts)
       grab_rewards += grab_reward
       stacking_rewards += stacking_reward
       contacts += contact
