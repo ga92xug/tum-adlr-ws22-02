@@ -388,10 +388,16 @@ class DMC:
     box_pos_z_total = []
     
     for i in range(self._action_repeat):
+      n_boxes = 4
+      box_names = ['box' + str(b) for b in range(n_boxes)]
+      print(self._env.physics.body_2d_pose(box_names))
+      time.sleep(4)
       time_step = self._env.step(action['action'])
+      print("Action")
+      print(self._env.physics.body_2d_pose(box_names))
+      time.sleep(4)
       reward += time_step.reward or 0.0
       print(time_step.observation['box_pos'])
-      print(time_step.step_type)
       time.sleep(3)
       
       # calculate contact reward
