@@ -390,7 +390,7 @@ class DMC:
       reward += time_step.reward or 0.0
       for key in time_step.observation:
           print(key)
-          print(time_step.observation.shape)
+          print(time_step.observation[key].shape)
           time.sleep(3)
       
       # calculate contact reward
