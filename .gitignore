@@ -5,3 +5,6 @@ dist
 MUJOCO_LOG.TXT
 configs.yaml
 **logs
+
+# GIFS
+*GIFS
