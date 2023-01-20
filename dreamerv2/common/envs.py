@@ -352,6 +352,7 @@ class DMC:
     return 0.0
 
   def calculate_box_pos(self, prev_ts_box_pos):
+    box_height_threshold = 0.003
     reward = 0
     sim = self._env.physics
     # fingertips = [13,14,17,18]
@@ -362,11 +363,10 @@ class DMC:
     box_pos = sim.body_2d_pose(box_names)[:,:2]
     box_pos_z = box_pos[:,1]
     box_pos_x = box_pos[:,0]
-    print(box_pos_z)
-    print("Previous Time Step Box Pos:")
-    print(prev_ts_box_pos[:,:2][:,1])
-    
-    print("Box_pos_func: "+str(box_pos))
+    #print(box_pos_z)
+    #print("Previous Time Step Box Pos:")
+    #print(prev_ts_box_pos[:,:2][:,1])
+    prev_box_pos_z = prev_ts_box_pos[:, :2][:,1]
     
     for i in range(n_boxes):
         
@@ -374,7 +374,10 @@ class DMC:
         # x pos in between -.382843 and .382843 to not touch wall
         # (values show wall center at x-pos)
         if box_pos_z[i] > 0.0655 and box_pos_z[i]<0.3 and box_pos_x[i]>(-0.682843+0.3) and box_pos_x[i]<(0.682843-0.3): # total box height ca. 0.044 -> ca. 0.066 for box stacked on other box
-            reward += 1
+            if box_pos_z[i] > prev_box_pos_z[i] + box_height_threshold:
+                reward += 1
+            if box_pos_z[i] + box_height_threshold < prev_box_pos_z[i]:
+                reward -= 1
 
     return reward, box_pos, box_pos_z
 
@@ -390,7 +393,7 @@ class DMC:
     box_pos_z_total = []
     
     for i in range(self._action_repeat):
-      n_boxes = 4
+      n_boxes = int(self.task.split("_")[1])
       box_names = ['box' + str(b) for b in range(n_boxes)]
       previous_timestep_box_pos = self._env.physics.body_2d_pose(box_names)
       time_step = self._env.step(action['action'])
@@ -424,8 +427,8 @@ class DMC:
         'image': self._env.physics.render(*self._size, camera_id=self._camera),
         'log_contacts': contacts,
         'log_contact_forces': contact_forces,
-        'log_box_pos_z_mean': box_pos_z_mean,
-        'last_box_pos_z': box_pos_z_total,
+        'log_box_pos_z_mean': box_pos_z_total,
+        #'last_box_pos_z': box_pos_z_total,
     }
     obs.update({
         k: v for k, v in dict(time_step.observation).items()
