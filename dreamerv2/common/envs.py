@@ -351,7 +351,7 @@ class DMC:
 
     return 0.0
 
-  def calculate_box_pos(self):
+  def calculate_box_pos(self, prev_ts_box_pos):
     reward = 0
     sim = self._env.physics
     # fingertips = [13,14,17,18]
@@ -362,7 +362,9 @@ class DMC:
     box_pos = sim.body_2d_pose(box_names)[:,:2]
     box_pos_z = box_pos[:,1]
     box_pos_x = box_pos[:,0]
-    #print(box_pos_z)
+    print(box_pos_z)
+    print("Previous Time Step Box Pos:")
+    print(prev_ts_box_pos[:,:2][:,1])
     
     print("Box_pos_func: "+str(box_pos))
     
@@ -390,10 +392,8 @@ class DMC:
     for i in range(self._action_repeat):
       n_boxes = 4
       box_names = ['box' + str(b) for b in range(n_boxes)]
-      print(self._env.physics.body_2d_pose(box_names))
+      previous_timestep_box_pos = self._env.physics.body_2d_pose(box_names)
       time_step = self._env.step(action['action'])
-      print("Action")
-      print(self._env.physics.body_2d_pose(box_names))
       reward += time_step.reward or 0.0
       
       # calculate contact reward
@@ -401,7 +401,7 @@ class DMC:
       # grab_reward, contact, contact_force = self.calculate_contacts(ncon)
       grab_reward, contact, contact_force = self.learn_to_grab_reward(self.current_step)
       #grab_reward = self.calculate_grab_reward()
-      stacking_reward, box_pos, box_pos_z = self.calculate_box_pos()
+      stacking_reward, box_pos, box_pos_z = self.calculate_box_pos(previous_timestep_box_pos)
       grab_rewards += grab_reward
       stacking_rewards += stacking_reward
       contacts += contact
