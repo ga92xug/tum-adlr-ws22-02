@@ -388,8 +388,9 @@ class DMC:
     box_pos_z_total = []
     
     for i in range(self._action_repeat):
-      print(self._env.observation_spec())
-      time.sleep(10)
+      for key in self._env:
+          print(key)
+          time.sleep(2)
       time_step = self._env.step(action['action'])
       reward += time_step.reward or 0.0
       print(time_step.observation['box_pos'])
