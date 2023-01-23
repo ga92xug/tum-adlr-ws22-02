@@ -312,6 +312,8 @@ class DMC:
 
 
   def learn_to_grab_reward(self, current_step):
+    # original parameters
+
     ncon = self._env.physics.data.ncon
     # learn close to box
     if current_step < 500000:
