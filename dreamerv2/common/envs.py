@@ -269,7 +269,7 @@ class DMC:
                         box_name = sim.model.id2name(con_object2, 'geom')
                         box_pos_z = sim.named.data.geom_xpos[box_name, 'z']
                         box_pos_x = sim.named.data.geom_xpos[box_name, 'x']
-                        if box_pos_z > 0.08 and box_pos_z<0.3 and box_pos_x>(-0.682843+0.3) and box_pos_x<(0.682843-0.3):
+                        if box_pos_z > 0.0655 and box_pos_z<0.3 and box_pos_x>(-0.682843+0.3) and box_pos_x<(0.682843-0.3):
                             # not touching other boxes
                             distance_other = [sim.site_distance(box_name, box2) for box2 in box_names if box2 != box_name]
                             if np.min(distance_other) > far:
@@ -314,7 +314,7 @@ class DMC:
   def learn_to_grab_reward(self, current_step):
     ncon = self._env.physics.data.ncon
     # learn close to box
-    if current_step < 500000 and False:
+    if current_step < 500000:
         contacts = self.touch_reward(ncon, learn_lift=False)
         output = self.finger_close_reward()
         return (output[0], contacts[1], output[1])
@@ -322,7 +322,7 @@ class DMC:
     elif current_step < 1000000:
         return self.touch_reward(ncon, learn_lift=False)
     # learn lift box
-    else: # current_step < 1000000:
+    else: # current_step >= 1000000:
         return self.touch_reward(ncon, learn_lift=True)
 
 
