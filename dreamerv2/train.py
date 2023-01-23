@@ -220,8 +220,10 @@ def main():
     eval_driver(eval_policy, episodes=config.eval_eps)
     print('Start training.')
     if should_expl(step):
+      print('Exploration mode.')
       agnt.set_mode('explore')
     else:
+      print('Training mode.')
       agnt.set_mode('train')
     train_driver(train_policy, steps=config.eval_every)
     agnt.save(logdir / 'variables.pkl')

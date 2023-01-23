@@ -23,7 +23,7 @@ class Agent(common.Module):
           self.config, self.act_space, self.wm, self.tfstep,
           lambda seq: self.wm.heads['reward'](seq['feat']).mode())
           #lambda seq: self.wm.heads['grab_reward'](seq['feat']).mode())
-    self._mode = self.set_mode('train')
+    self._mode = self.set_mode('explore')
 
   def set_mode(self, mode):
     self._mode = mode
