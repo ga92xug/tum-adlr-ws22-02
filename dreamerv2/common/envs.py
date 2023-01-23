@@ -372,7 +372,7 @@ class DMC:
         # (values show wall center at x-pos)
         #print("Prev: "+str(prev_box_pos_z))
         #print(box_pos_z)
-        '''
+        
         # Stacking reward version 1: 
         if (box_pos_z[i] > 0.065) and (box_pos_z[i]<0.18) and (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)): # total box height ca. 0.044 -> ca. 0.066 for box stacked on other box
             if box_pos_z[i] > (prev_box_pos_z[i] + box_height_threshold):
@@ -400,7 +400,7 @@ class DMC:
                     if prev_ts.site_distance('box'+str(j), 'box'+str(i)) < 0.05:
                         if (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)):
                             reward -= 1
-        
+        '''
         
     return reward, box_pos, box_pos_z
 
