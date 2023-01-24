@@ -316,7 +316,7 @@ class DMC:
 
     ncon = self._env.physics.data.ncon
     # learn close to box
-    if current_step < 500000:
+    if current_step < 250000:
         contacts = self.touch_reward(ncon, learn_lift=False)
         output = self.finger_close_reward()
         return (output[0], contacts[1], output[1])
