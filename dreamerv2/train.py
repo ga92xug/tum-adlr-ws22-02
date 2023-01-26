@@ -75,7 +75,9 @@ def main():
   should_log = common.Every(config.log_every)
   should_video_train = common.Every(config.eval_every)
   should_video_eval = common.Every(config.eval_every)
-  should_expl = common.Until(config.expl_until // config.action_repeat)
+  # should_expl = common.Until(config.expl_until // config.action_repeat)
+  # I think this was a bug in the original code.
+  should_expl = common.Until(config.expl_until)
 
   def make_env(mode):
     suite, task = config.task.split('_', 1)
@@ -215,16 +217,9 @@ def main():
 
     logger.write()
     print('Start evaluation.')
-    agnt.set_mode('eval')
     logger.add(agnt.report(next(eval_dataset)), prefix='eval')
     eval_driver(eval_policy, episodes=config.eval_eps)
     print('Start training.')
-    if should_expl(step):
-      print('Exploration mode.')
-      agnt.set_mode('explore')
-    else:
-      print('Training mode.')
-      agnt.set_mode('train')
     train_driver(train_policy, steps=config.eval_every)
     agnt.save(logdir / 'variables.pkl')
   for env in train_envs + eval_envs:

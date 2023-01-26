@@ -220,7 +220,7 @@ class DMC:
   def touch_reward(self, number_contacts, learn_force=False, learn_lift=False):
     n_boxes = int(self.task.split("_")[1])
     box_names = ['box' + str(b) for b in range(n_boxes)]
-    far = .065
+    far = .1
     reward = 0
     contacts = 0
     contact_forces = 0
@@ -269,10 +269,10 @@ class DMC:
                         box_name = sim.model.id2name(con_object2, 'geom')
                         box_pos_z = sim.named.data.geom_xpos[box_name, 'z']
                         box_pos_x = sim.named.data.geom_xpos[box_name, 'x']
-                        if box_pos_z > 0.0655 and box_pos_z<0.3 and box_pos_x>(-0.682843+0.3) and box_pos_x<(0.682843-0.3):
+                        if box_pos_z > 0.1 and box_pos_z<0.3 and box_pos_x>(-0.682843+0.3) and box_pos_x<(0.682843-0.3):
                             # not touching other boxes
                             distance_other = [sim.site_distance(box_name, box2) for box2 in box_names if box2 != box_name]
-                            if np.min(distance_other) > far:
+                            if np.min(distance_other) > 0.1:
                                 reward = 1
                                 return reward, contacts, contact_forces
                     else:

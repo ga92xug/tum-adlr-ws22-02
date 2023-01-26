@@ -16,6 +16,7 @@ class Agent(common.Module):
     self.tfstep = tf.Variable(int(self.step), tf.int64)
     self.wm = WorldModel(config, obs_space, self.tfstep)
     self._task_behavior = ActorCritic(config, self.act_space, self.tfstep, self.obs_space)
+    self._task_behavior.set_mode('train')
     if config.expl_behavior == 'greedy':
       self._expl_behavior = self._task_behavior
     else:
@@ -23,13 +24,7 @@ class Agent(common.Module):
           self.config, self.act_space, self.wm, self.tfstep,
           lambda seq: self.wm.heads['reward'](seq['feat']).mode())
           #lambda seq: self.wm.heads['grab_reward'](seq['feat']).mode())
-    self._mode = self.set_mode('explore')
-
-  def set_mode(self, mode):
-    self._mode = mode
-    self._task_behavior.set_mode(self._mode)
-    if self._expl_behavior is not self._task_behavior:
-      self._expl_behavior.set_mode(self._mode)
+    self._expl_behavior.set_mode('explore')
     
 
   @tf.function
@@ -290,6 +285,7 @@ class ActorCritic(common.Module):
       seq = world_model.imagine(self.actor, start, is_terminal, hor)
       reward = reward_fn(seq)
       if self._mode == 'explore':
+        print('agent _mode is explore')
         # compute additional rewards
         grab_reward = grab_reward_fn(seq)
         # stacking_reward = stacking_reward_fn(seq)
@@ -313,10 +309,12 @@ class ActorCritic(common.Module):
         # stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
         # combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
       elif self._mode == 'train':
+        print('agent _mode is train')
         # train
         seq['reward'], mets1 = self.rewnorm(reward)
         mets1 = {f'reward_{k}': v for k, v in mets1.items()}
       else:
+        print('agent _mode is eval')
         # eval
         seq['reward'], mets1 = self.rewnorm(reward)
         mets1 = {f'reward_{k}': v for k, v in mets1.items()}
