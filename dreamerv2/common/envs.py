@@ -263,6 +263,14 @@ class DMC:
             else:
                 # one finger is already involved
                 if (con_object1 not in fingers_involved) and (con_object2 in touched_boxes):
+                    # box only has to be touched to get reward
+                    box_name = sim.model.id2name(con_object2, 'geom')
+                    box_pos_z = sim.named.data.geom_xpos[box_name, 'z']
+                    box_pos_x = sim.named.data.geom_xpos[box_name, 'x']
+                    hand_pos = sim.body_2d_pose('hand')[:2]
+                    hand_pos_x = hand_pos[0]
+                    distance_x = abs(box_pos_x - hand_pos_x)
+
                     # new finger is involved and box is already touched
                     if learn_lift:
                         # box has to be lifted to get reward
@@ -272,12 +280,13 @@ class DMC:
                         if box_pos_z > 0.1 and box_pos_z<0.3 and box_pos_x>(-0.682843+0.3) and box_pos_x<(0.682843-0.3):
                             # not touching other boxes
                             distance_other = [sim.site_distance(box_name, box2) for box2 in box_names if box2 != box_name]
-                            if np.min(distance_other) > 0.1:
+                            if np.min(distance_other) > 0.1 and distance_x < 0.022:
                                 reward = 1
                                 return reward, contacts, contact_forces
                     else:
-                        # box only has to be touched to get reward
-                        reward = 1
+                        if distance_x < 0.022:
+                            reward = 1
+                        
                         return reward, contacts, contact_forces
 
                 elif con_object2 not in touched_boxes:
@@ -304,7 +313,7 @@ class DMC:
       distances_x.append(distance_x)
       # print('distance_x', distance_x)
       # previous distance_x < 0.044
-      if sim.site_distance('pinch', box1) < _CLOSE and distance_x < 0.09:
+      if sim.site_distance('pinch', box1) < _CLOSE and distance_x < 0.022:
           reward = 1
           return reward, distance_x
 
