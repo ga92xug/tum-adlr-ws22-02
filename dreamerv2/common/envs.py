@@ -321,7 +321,7 @@ class DMC:
         output = self.finger_close_reward()
         return (output[0], contacts[1], output[1])
     # learn contact with box
-    elif current_step < 1000000:
+    elif current_step < 750000:
         return self.touch_reward(ncon, learn_lift=False)
     # learn lift box
     else: # current_step >= 1000000:
