@@ -291,11 +291,12 @@ class DMC:
                             # not touching other boxes
                             distance_other = [sim.site_distance(box_name, box2) for box2 in box_names if box2 != box_name]
                             if np.min(distance_other) > 0.1 and distance_x < 0.022 \
-                                and thumb_pos_x < box_pos_x and finger_pos_x > box_pos_x:
+                                and thumb_pos_x >= box_pos_x and finger_pos_x <= box_pos_x:
                                 reward = 1
                                 return reward, contacts, contact_forces
                     else:
-                        if distance_x < 0.022 and thumb_pos_x < box_pos_x and finger_pos_x > box_pos_x:
+                        if distance_x < 0.022  \
+                          and thumb_pos_x >= box_pos_x and finger_pos_x <= box_pos_x:
                             reward = 1
                             return reward, contacts, contact_forces
 
@@ -331,7 +332,7 @@ class DMC:
 
       # thumb left -> thumb_pos_x < box_pos_x 
       if sim.site_distance('pinch', box1) < _CLOSE and distance_x < 0.022 \
-        and thumb_pos_x < box_pos_x[id] and finger_pos_x > box_pos_x[id]:
+        and thumb_pos_x >= box_pos_x[id] and finger_pos_x <= box_pos_x[id]:
           reward = 1
           return reward, distance_x
 
