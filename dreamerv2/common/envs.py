@@ -218,6 +218,10 @@ class DMC:
 
 
   def touch_reward(self, number_contacts, learn_force=False, learn_lift=False):
+    # thumb start pos=".03 0 .045"
+    # finger start pos="-.03 0 .045"
+    # -> tumb finger left, thumb right -> but flip once because in the air 
+
     n_boxes = int(self.task.split("_")[1])
     box_names = ['box' + str(b) for b in range(n_boxes)]
     far = .1
@@ -267,9 +271,15 @@ class DMC:
                     box_name = sim.model.id2name(con_object2, 'geom')
                     box_pos_z = sim.named.data.geom_xpos[box_name, 'z']
                     box_pos_x = sim.named.data.geom_xpos[box_name, 'x']
+
                     hand_pos = sim.body_2d_pose('hand')[:2]
                     hand_pos_x = hand_pos[0]
                     distance_x = abs(box_pos_x - hand_pos_x)
+
+                    thumb_pos = sim.body_2d_pose('thumb')[:2]
+                    thumb_pos_x = thumb_pos[0]
+                    finger_pos = sim.body_2d_pose('finger')[:2]
+                    finger_pos_x = finger_pos[0]
 
                     # new finger is involved and box is already touched
                     if learn_lift:
@@ -280,14 +290,14 @@ class DMC:
                         if box_pos_z > 0.1 and box_pos_z<0.3 and box_pos_x>(-0.682843+0.3) and box_pos_x<(0.682843-0.3):
                             # not touching other boxes
                             distance_other = [sim.site_distance(box_name, box2) for box2 in box_names if box2 != box_name]
-                            if np.min(distance_other) > 0.1 and distance_x < 0.022:
+                            if np.min(distance_other) > 0.1 and distance_x < 0.022 \
+                                and thumb_pos_x < box_pos_x and finger_pos_x > box_pos_x:
                                 reward = 1
                                 return reward, contacts, contact_forces
                     else:
-                        if distance_x < 0.022:
+                        if distance_x < 0.022 and thumb_pos_x < box_pos_x and finger_pos_x > box_pos_x:
                             reward = 1
-                        
-                        return reward, contacts, contact_forces
+                            return reward, contacts, contact_forces
 
                 elif con_object2 not in touched_boxes:
                     # new box is touched and we don't care about which finger is involved
@@ -304,6 +314,11 @@ class DMC:
     box_pos_x = box_pos[:,0]
     hand_pos = sim.body_2d_pose('hand')[:2]
     hand_pos_x = hand_pos[0]
+
+    thumb_pos = sim.body_2d_pose('thumb')[:2]
+    thumb_pos_x = thumb_pos[0]
+    finger_pos = sim.body_2d_pose('finger')[:2]
+    finger_pos_x = finger_pos[0]
     
     distances_x = []
     for box1, id in zip(box_names, range(n_boxes)):
@@ -313,7 +328,10 @@ class DMC:
       distances_x.append(distance_x)
       # print('distance_x', distance_x)
       # previous distance_x < 0.044
-      if sim.site_distance('pinch', box1) < _CLOSE and distance_x < 0.022:
+
+      # thumb left -> thumb_pos_x < box_pos_x 
+      if sim.site_distance('pinch', box1) < _CLOSE and distance_x < 0.022 \
+        and thumb_pos_x < box_pos_x[id] and finger_pos_x > box_pos_x[id]:
           reward = 1
           return reward, distance_x
 
