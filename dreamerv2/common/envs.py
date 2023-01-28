@@ -275,9 +275,9 @@ class DMC:
                     hand_pos_x = hand_pos[0]
                     distance_x = abs(box_pos_x - hand_pos_x)
 
-                    thumb_pos = sim.body_2d_pose('thumbtip2')[:2]
+                    thumb_pos = sim.body_2d_pose('thumbtip')[:2]
                     thumb_pos_x = thumb_pos[0]
-                    finger_pos = sim.body_2d_pose('fingertip2')[:2]
+                    finger_pos = sim.body_2d_pose('fingertip')[:2]
                     finger_pos_x = finger_pos[0]
 
                     if distance_x < 0.022:
@@ -318,9 +318,9 @@ class DMC:
     hand_pos_x = hand_pos[0]
     hand_pos_z = hand_pos[1]
 
-    thumb_pos = sim.body_2d_pose('thumbtip2')[:2]
+    thumb_pos = sim.body_2d_pose('thumbtip')[:2]
     thumb_pos_x = thumb_pos[0]
-    finger_pos = sim.body_2d_pose('fingertip2')[:2]
+    finger_pos = sim.body_2d_pose('fingertip')[:2]
     finger_pos_x = finger_pos[0]
     
     distances_x = []
