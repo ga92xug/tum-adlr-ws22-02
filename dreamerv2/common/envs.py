@@ -315,11 +315,16 @@ class DMC:
     box_pos_x = box_pos[:,0]
     hand_pos = sim.body_2d_pose('hand')[:2]
     hand_pos_x = hand_pos[0]
+    hand_pos_z = hand_pos[1]
 
-    thumb_pos = sim.body_2d_pose('thumb')[:2]
+    thumb_pos = sim.body_2d_pose('thumbtip2')[:2]
     thumb_pos_x = thumb_pos[0]
-    finger_pos = sim.body_2d_pose('finger')[:2]
+    finger_pos = sim.body_2d_pose('fingertip2')[:2]
     finger_pos_x = finger_pos[0]
+
+    if self.current_step % 10 == 0:
+        print('current_step:', self.current_step)
+        print('thumb_pos_x: ', thumb_pos_x, 'finger_pos_x: ', finger_pos_x)
     
     distances_x = []
     for box1, id in zip(box_names, range(n_boxes)):
@@ -327,8 +332,8 @@ class DMC:
       # one finger left one finger right
       distance_x = np.abs([box_pos_x[id] - hand_pos_x])
       distances_x.append(distance_x)
-      # print('distance_x', distance_x)
-      # previous distance_x < 0.044
+    
+
 
       # thumb left -> thumb_pos_x < box_pos_x 
       if sim.site_distance('pinch', box1) < _CLOSE and distance_x < 0.022 \
