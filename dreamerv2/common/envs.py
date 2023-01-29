@@ -351,7 +351,7 @@ class DMC:
 
     return 0.0
 
-  def check_contact(self, sim, box_name):
+  def check_no_contact(self, sim, box_name):
       
       number_contacts = sim.data.ncon
       fingertips = self.fingertips
@@ -418,7 +418,8 @@ class DMC:
                     if (i!=j) and ((abs(box_pos_x[i] - box_pos_x[j])<0.025) and (box_pos_z[i]>box_pos_z[j]+0.04)):
                         print("Z-Pos: "+str(box_pos_z[i], box_pos_z[j]))
                         print("X-Pos: "+str(box_pos_x[i], box_pos_x[j]))
-                        reward += 1
+                        if (box_pos_z[i]) < prev_box_pos_z[i]: # avoid reward for same position
+                            reward += 1
             # subtract reward when falling and not above other box
             elif (box_pos_z[i] + box_height_threshold) < prev_box_pos_z[i]:
                 reward -= 1
