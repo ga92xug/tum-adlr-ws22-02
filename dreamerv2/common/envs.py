@@ -351,6 +351,36 @@ class DMC:
 
     return 0.0
 
+  def check_contact(self, sim, box_name):
+      
+      number_contacts = sim.data.ncon
+      fingertips = self.fingertips
+      boxes = self.boxes
+      for i in range(number_contacts):
+          contact = sim.data.contact[i]
+          con_object1 = contact.geom1
+          con_object2 = contact.geom2
+
+          # swap if needed
+          if con_object2 in fingertips:
+              con_object1, con_object2 = con_object2, con_object1
+
+          if (con_object1 in fingertips) and (con_object2 in boxes):
+              #print('One finger and one box involved')
+              # exactly one finger and one box is part of contact 
+              # (we don't want fingers to touch each other)
+              box_name_2 = sim.model.id2name(con_object2, 'geom')
+              box_pos_z = sim.named.data.geom_xpos[box_name_2, 'z']
+              box_pos_x = sim.named.data.geom_xpos[box_name_2, 'x']
+              print("Box2: "+str(box_pos_x)+","+str(box_pos_z))
+              print("Box2: "+box_name_2)
+              print("Box1: "+box_name)
+              if box_name == box_name_2:
+                  return False
+              
+      return True
+
+
   def calculate_box_pos(self, prev_ts_box_pos, prev_ts):
     box_height_threshold = 0.001
     reward = 0
@@ -376,7 +406,8 @@ class DMC:
         # Stacking reward version 1: 
         if (box_pos_z[i] > 0.065) and (box_pos_z[i]<0.18) and (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)): # total box height ca. 0.044 -> ca. 0.066 for box stacked on other box
             if box_pos_z[i] > (prev_box_pos_z[i] + box_height_threshold):
-                reward += 1
+                if self.check_contact(sim=sim, box_name=box_names[i]):
+                    reward += 1
             if (box_pos_z[i] + box_height_threshold) < prev_box_pos_z[i]:
                 reward -= 1
         elif (box_pos_z[i]<0.18):
