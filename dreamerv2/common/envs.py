@@ -375,6 +375,9 @@ class DMC:
               print("Box2: "+str(box_pos_x)+","+str(box_pos_z))
               print("Box2: "+box_name_2)
               print("Box1: "+box_name)
+              box_pos_z_1 = sim.named.data.geom_xpos[box_name, 'z']
+              box_pos_x_1 = sim.named.data.geom_xpos[box_name, 'x']
+              print("Box1: "+str(box_pos_x_1)+","+str(box_pos_z_1))
               if box_name == box_name_2:
                   return False
               
