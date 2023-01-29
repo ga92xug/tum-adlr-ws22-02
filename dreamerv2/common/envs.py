@@ -416,8 +416,8 @@ class DMC:
                 # box above other box given custom range --> falling on other box
                 for j in range(n_boxes):
                     if (i!=j) and ((abs(box_pos_x[i] - box_pos_x[j])<0.025) and (box_pos_z[i]>box_pos_z[j]+0.04)):
-                        print("Z-Pos: "+str(box_pos_z[i], box_pos_z[j]))
-                        print("X-Pos: "+str(box_pos_x[i], box_pos_x[j]))
+                        print("Z-Pos: "+str(box_pos_z[i]) + ',' + str(box_pos_z[j]))
+                        print("X-Pos: "+str(box_pos_x[i]) + ',' + str(box_pos_x[j]))
                         if (box_pos_z[i]) < prev_box_pos_z[i]: # avoid reward for same position
                             reward += 1
             # subtract reward when falling and not above other box
