@@ -280,26 +280,23 @@ class DMC:
                     finger_pos = sim.body_2d_pose('fingertip')[:2]
                     finger_pos_x = finger_pos[0]
 
-                    if distance_x < 0.022:
+                    if distance_x < 0.022 and ((thumb_pos_x >= box_pos_x and finger_pos_x <= box_pos_x) \
+                      or (thumb_pos_x <= box_pos_x and finger_pos_x >= box_pos_x)):
                         if learn_lift:
                             # box has to be lifted to get reward
                             box_name = sim.model.id2name(con_object2, 'geom')
                             box_pos_z = sim.named.data.geom_xpos[box_name, 'z']
                             box_pos_x = sim.named.data.geom_xpos[box_name, 'x']
-                            if box_pos_z > 0.1 and box_pos_z<0.3 and box_pos_x>(-0.682843+0.3) and box_pos_x<(0.682843-0.3):
+                            if box_pos_z > 0.04:
                                 # not touching other boxes
                                 # distance_other = [sim.site_distance(box_name, box2) for box2 in box_names if box2 != box_name]
                                 # np.min(distance_other) > 0.1 and 
                                 
-                                if (thumb_pos_x >= box_pos_x and finger_pos_x <= box_pos_x) \
-                                    or (thumb_pos_x <= box_pos_x and finger_pos_x >= box_pos_x):
-                                      reward = 1
-                                      return reward, contacts, contact_forces
+                                reward = 1
+                                return reward, contacts, contact_forces
                         else:
-                            if (thumb_pos_x >= box_pos_x and finger_pos_x <= box_pos_x) \
-                                or (thumb_pos_x <= box_pos_x and finger_pos_x >= box_pos_x):
-                                    reward = 1
-                                    return reward, contacts, contact_forces
+                            reward = 1
+                            return reward, contacts, contact_forces
 
                 elif con_object2 not in touched_boxes:
                     # new box is touched and we don't care about which finger is involved
