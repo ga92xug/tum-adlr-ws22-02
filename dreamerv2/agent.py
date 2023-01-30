@@ -291,18 +291,17 @@ class ActorCritic(common.Module):
       reward = reward_fn(seq)
       if self._mode == 'train':
         # compute additional rewards
-        #grab_reward = grab_reward_fn(seq)
+        grab_reward = grab_reward_fn(seq)
         stacking_reward = stacking_reward_fn(seq)
 
         # norm of individual rewards
-        #normal_reward, normal_mets1 = self.rewnorm(reward)
-        #grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
-        # grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
+        normal_reward, normal_mets1 = self.rewnorm(reward)
+        grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
         stacking_reward, stacking_mets1 = self.stacking_rewnorm(stacking_reward)
         
         # combine rewards and normalize
         #seq_rewards = self.config.grab_reward_weight * grab_reward + self.config.stacking_reward_weight * stacking_reward
-        seq['reward'] = stacking_reward
+        seq['reward'] = normal_reward#stacking_reward
         '''
         seq_rewards = self.config.reward_weight * normal_reward \
             + self.config.grab_reward_weight * grab_reward \
@@ -311,8 +310,8 @@ class ActorCritic(common.Module):
         #seq['reward'], combiner_mets1 = self.combiner_rewnorm(seq_rewards)
         
         # metrics
-        # normal_mets1 = {f'normal_reward_{k}': v for k, v in normal_mets1.items()}
-        #grab_mets1 = {f'grab_reward_{k}': v for k, v in grab_mets1.items()}
+        normal_mets1 = {f'normal_reward_{k}': v for k, v in normal_mets1.items()}
+        grab_mets1 = {f'grab_reward_{k}': v for k, v in grab_mets1.items()}
         stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
         #combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
 

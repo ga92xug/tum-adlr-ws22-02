@@ -210,10 +210,10 @@ def main():
     if step >= config.start_external_reward and False:
       # linear fade-in from grab to stacking reward
       config = config.update({
-          'reward_weight': 0.0,
+          'reward_weight': 1.0,
           'grab_reward_weight': 0.0,#(1.0  - (step.value - config.start_external_reward)\
                                 #/ (config.steps - config.start_external_reward)),
-          'stacking_reward_weight':1.0,#(0.0 + (step.value - config.start_external_reward)\
+          'stacking_reward_weight':0.0,#(0.0 + (step.value - config.start_external_reward)\
                                 #/ (config.steps - config.start_external_reward))
       })
 
