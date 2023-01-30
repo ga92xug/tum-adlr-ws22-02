@@ -126,8 +126,8 @@ class WorldModel(common.Module):
     self.heads = {}
     self.heads['decoder'] = common.Decoder(shapes, **config.decoder)
     self.heads['reward'] = common.MLP([], **config.reward_head)
-    self.heads['grab_reward'] = common.MLP([], **config.grab_reward_head)
-    self.heads['stacking_reward'] = common.MLP([], **config.stacking_reward_head)
+    #self.heads['grab_reward'] = common.MLP([], **config.grab_reward_head)
+    #self.heads['stacking_reward'] = common.MLP([], **config.stacking_reward_head)
     if config.pred_discount:
       self.heads['discount'] = common.MLP([], **config.discount_head)
     for name in config.grad_heads:
