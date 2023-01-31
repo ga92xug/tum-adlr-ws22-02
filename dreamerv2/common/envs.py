@@ -9,6 +9,8 @@ import gym
 import numpy as np
 import warnings
 
+import common
+
 
 class GymWrapper:
 
@@ -79,6 +81,8 @@ class DMC:
     self.fingertips = [13,14,17,18]
     self.boxes = [19,20,21,21]
     self.current_step = 0
+    self.should_grab_now = common.Activated()
+    self.should_lift_now = common.Activated()
 
     os.environ['MUJOCO_GL'] = 'egl'
     self.interesting_geom = [13,14,17,18]
@@ -345,12 +349,12 @@ class DMC:
 
     ncon = self._env.physics.data.ncon
     # learn close to box
-    if current_step < 250000:
+    if not self.should_grab_now():
         contacts = self.touch_reward(ncon, learn_lift=False)
         output = self.finger_close_reward()
         return (output[0], contacts[1], output[1])
     # learn contact with box
-    elif current_step < 750000:
+    elif not self.should_lift_now():
         return self.touch_reward(ncon, learn_lift=False)
     # learn lift box
     else: # current_step >= 1000000:
@@ -473,6 +477,10 @@ class DMC:
 
   def set_current_step(self, step):
       self.current_step = step
+
+  def set_learning_phase(self, should_grab_now, should_lift_now):
+      self.should_grab_now = should_grab_now
+      self.should_lift_now = should_lift_now
 
 
 class Atari:

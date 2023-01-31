@@ -29,6 +29,19 @@ class Once:
     return False
 
 
+class Activated:
+    def __init__(self):
+        self.activated = False
+
+    def activate(self):
+        self.activated = True
+
+    def __call__(self):
+        return self.activated
+
+
+
+
 class Until:
 
   def __init__(self, until):

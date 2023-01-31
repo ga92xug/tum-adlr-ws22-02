@@ -6,6 +6,7 @@ import pathlib
 import re
 import sys
 import warnings
+from collections import deque
 
 try:
   import rich.traceback
@@ -27,7 +28,10 @@ import agent
 import common
 
 
+
 def main():
+  MAX_SIZE = 100
+  queue = deque(maxlen=MAX_SIZE)
 
   configs = yaml.safe_load((
       pathlib.Path(sys.argv[0]).parent / 'configs.yaml').read_text())
@@ -79,6 +83,9 @@ def main():
   # I think this was a bug in the original code.
   should_expl = common.Until(config.expl_until)
 
+  should_grab_now = common.Activated()
+  should_lift_now = common.Activated()
+
   def make_env(mode):
     suite, task = config.task.split('_', 1)
     if suite == 'dmc':
@@ -105,6 +112,19 @@ def main():
     length = len(ep['reward']) - 1
     score = float(ep['reward'].astype(np.float64).sum())
     grab_reward = float(ep['grab_reward'].astype(np.float64).sum())
+
+    if mode == 'train':
+      queue.append(grab_reward)
+      if len(queue) == MAX_SIZE and np.mean(queue) > 100 and not should_grab_now():
+        # learned to be close to the box
+        should_grab_now.activate()
+        queue = deque(maxlen=MAX_SIZE)
+        print('Activating grab now')
+      elif len(queue) == MAX_SIZE and np.mean(queue) > 300 and should_grab_now():
+        # learned to grab the box
+        should_lift_now.activate()
+        print('Activating lift now')
+         
     stacking_reward = float(ep['stacking_reward'].astype(np.float64).sum())
     # contacts
     contacts = ep['log_contacts'].astype(np.uint32).sum()
@@ -205,6 +225,8 @@ def main():
   while step < config.steps:
     [env.set_current_step(step.value) for env in train_envs]
     [env.set_current_step(step.value) for env in eval_envs]
+    [env.set_learning_phase(should_grab_now, should_lift_now) for env in train_envs]
+    [env.set_learning_phase(should_grab_now, should_lift_now) for env in eval_envs]
     if step >= config.start_external_reward and False:
       # linear fade-in from grab to stacking reward
       config = config.update({
