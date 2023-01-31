@@ -355,6 +355,7 @@ class DMC:
     # learn lift box
     else: # current_step >= 1000000:
         return self.touch_reward(ncon, learn_lift=True)
+    # last idea: learn to have the box which is grabed directly above other box
 
 
   def calculate_grab_reward(self):
