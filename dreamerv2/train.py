@@ -124,7 +124,7 @@ def main():
         # learned to grab the box
         should_lift_now.activate()
         print('Activating lift now')
-         
+                 
     stacking_reward = float(ep['stacking_reward'].astype(np.float64).sum())
     # contacts
     contacts = ep['log_contacts'].astype(np.uint32).sum()
