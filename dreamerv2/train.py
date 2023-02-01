@@ -7,6 +7,7 @@ import re
 import sys
 import warnings
 from collections import deque
+import pickle
 
 try:
   import rich.traceback
@@ -30,9 +31,6 @@ import common
 
 
 def main():
-  MAX_SIZE = 100
-  queue = deque(maxlen=MAX_SIZE)
-
   configs = yaml.safe_load((
       pathlib.Path(sys.argv[0]).parent / 'configs.yaml').read_text())
   parsed, remaining = common.Flags(configs=['defaults']).parse(known_only=True)
@@ -49,6 +47,15 @@ def main():
   config.save(logdir_downloads / 'config.yaml')
   print(config, '\n')
   print('Logdir', logdir)
+
+  MAX_SIZE = 10
+  if (logdir / 'learn_lift.pkl').exists():
+      with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'rb') as f:
+          queue, should_grab_now, should_lift_now = pickle.load(f)
+  else:
+      queue = deque(maxlen=MAX_SIZE)
+      should_grab_now = common.Activated()
+      should_lift_now = common.Activated()
 
   import tensorflow as tf
   tf.config.experimental_run_functions_eagerly(not config.jit)
@@ -83,9 +90,6 @@ def main():
   # I think this was a bug in the original code.
   should_expl = common.Until(config.expl_until)
 
-  should_grab_now = common.Activated()
-  should_lift_now = common.Activated()
-
   def make_env(mode):
     suite, task = config.task.split('_', 1)
     if suite == 'dmc':
@@ -108,12 +112,13 @@ def main():
     env = common.TimeLimit(env, config.time_limit)
     return env
 
-  def per_episode(ep, mode):
+  def per_episode(ep, mode, queue=None):
     length = len(ep['reward']) - 1
     score = float(ep['reward'].astype(np.float64).sum())
     grab_reward = float(ep['grab_reward'].astype(np.float64).sum())
 
     if mode == 'train':
+      print('elements in queue', queue)
       queue.append(grab_reward)
       if len(queue) == MAX_SIZE and np.mean(queue) > 100 and not should_grab_now():
         # learned to be close to the box
@@ -174,7 +179,7 @@ def main():
   act_space = train_envs[0].act_space
   obs_space = train_envs[0].obs_space
   train_driver = common.Driver(train_envs)
-  train_driver.on_episode(lambda ep: per_episode(ep, mode='train'))
+  train_driver.on_episode(lambda ep: per_episode(ep, mode='train', queue=queue))
   train_driver.on_step(lambda tran, worker: step.increment())
   train_driver.on_step(train_replay.add_step)
   train_driver.on_reset(train_replay.add_step)
@@ -244,6 +249,10 @@ def main():
     print('Start training.')
     train_driver(train_policy, steps=config.eval_every)
     agnt.save(logdir / 'variables.pkl')
+
+    with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'wb') as f:
+        pickle.dump((queue, should_grab_now, should_lift_now), f)
+
   for env in train_envs + eval_envs:
     try:
       env.close()
