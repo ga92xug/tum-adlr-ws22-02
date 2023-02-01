@@ -48,6 +48,7 @@ def main():
   print(config, '\n')
   print('Logdir', logdir)
 
+  # deque over last 10 episodes(len(episod)=1000)
   MAX_SIZE = 10
   if (logdir / 'learn_lift.pkl').exists():
       with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'rb') as f:
@@ -118,7 +119,7 @@ def main():
     grab_reward = float(ep['grab_reward'].astype(np.float64).sum())
 
     if mode == 'train':
-      print('elements in queue', queue)
+      print('\n', 'elements in queue', queue)
       queue.append(grab_reward)
       if len(queue) == MAX_SIZE and np.mean(queue) > 100 and not should_grab_now():
         # learned to be close to the box
