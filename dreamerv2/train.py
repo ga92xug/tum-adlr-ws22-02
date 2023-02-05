@@ -57,7 +57,7 @@ def main():
           with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'rb') as f:
               queue, should_grab_now, should_lift_now = pickle.load(f)
               learning_phase = {
-                'grab': should_grab_now,
+                'grab': common.Activated() if should_lift_now() else should_grab_now,
                 'lift': should_lift_now,
                 'hover': common.Activated(), 
                 'drop': common.Activated()
@@ -141,6 +141,9 @@ def main():
     if mode == 'train':
       print('\n')
       print('Last grab rewards', list(queue))
+      for key, value in learning_phase.items():
+          if value():
+            print(f'learning_phase {key}', value)
       queue.append(grab_reward)
       if len(queue) == MAX_SIZE and np.min(queue) > 100 and not learning_phase['grab']() \
         and not learning_phase['lift']() and not learning_phase['hover']() and not learning_phase['drop']():
@@ -155,20 +158,25 @@ def main():
         learning_phase['lift'].activate()
         queue = deque(maxlen=MAX_SIZE)
         print('Activating lift now')
-      elif len(queue) == MAX_SIZE and np.min(queue) < 100 and not learning_phase['hover']() \
+      elif len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['hover']() \
         and not learning_phase['drop']():
         # learned to lift the box
         learning_phase['lift'].deactivate()
         learning_phase['hover'].activate()
         queue = deque(maxlen=MAX_SIZE)
         print('Activating hover now')
-      elif len(queue) == MAX_SIZE and np.min(queue) < 100 and not learning_phase['drop']():
+      elif len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['drop']():
         # learned to hover the box
         learning_phase['hover'].deactivate()
         learning_phase['drop'].activate()
         queue = deque(maxlen=MAX_SIZE)
         print('Activating drop now')
-                 
+
+    # we only want exactly one active learning phase at a time
+    count_active_phases = sum([learning_phase[phase]() for phase in ['grab', 'lift', 'hover', 'drop']])
+    if count_active_phases != 1:
+        raise Exception(f'There are {count_active_phases} active phases, but there should be exactly one.')
+
     stacking_reward = float(ep['stacking_reward'].astype(np.float64).sum())
     # contacts
     contacts = ep['log_contacts'].astype(np.uint32).sum()

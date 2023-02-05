@@ -351,16 +351,17 @@ class DMC:
 
 
   def learn_to_grab_reward(self, current_step):
-    if self.learning_phase('grab')():
+    #print(self.learning_phase['grab'], type(self.learning_phase['grab']))
+    if self.learning_phase['grab']():
         # learn contact with box
         return self.calculate_grab_reward_contactbased(learn_lift=False)
-    elif self.learning_phase('lift')():
+    elif self.learning_phase['lift']():
         # learn lift box
         return self.calculate_grab_reward_contactbased(learn_lift=True)
-    elif self.learning_phase('hover')():
+    elif self.learning_phase['hover']():
         # learn hover box
         return self.calculate_box2target_reward(drop=False), 0.0, 0.0
-    elif self.learning_phase('drop')():
+    elif self.learning_phase['drop']():
         # learn drop box
         return self.calculate_box2target_reward(drop=True), 0.0, 0.0
     else:
@@ -516,7 +517,7 @@ class DMC:
       self.current_step = step
 
   def set_learning_phase(self, learning_phase):
-      self.learning_phase = learning_phase('should_grab_now')
+      self.learning_phase = learning_phase
 
 
 class Atari:

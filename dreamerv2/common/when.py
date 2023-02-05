@@ -42,6 +42,9 @@ class Activated:
     def __call__(self):
         return self.activated
 
+    def __str__(self) -> str:
+        return f'Activated: {self.activated}'
+
 
 
 
