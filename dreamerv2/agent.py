@@ -48,11 +48,13 @@ class Agent(common.Module):
       action = actor.mode()
       noise = self.config.eval_noise
     elif mode == 'explore':
+      #print('policy is exploring')
       # self._expl_behavior.set_obs(obs)
       actor = self._expl_behavior.actor(feat)
       action = actor.sample()
       noise = self.config.expl_noise
     elif mode == 'train':
+      #print('policy is training')
       actor = self._task_behavior.actor(feat)
       action = actor.sample()
       noise = self.config.expl_noise

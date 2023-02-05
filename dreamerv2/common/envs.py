@@ -81,8 +81,12 @@ class DMC:
     self.fingertips = [13,14,17,18]
     self.boxes = [19,20,21,21]
     self.current_step = 0
-    self.should_grab_now = common.Activated()
-    self.should_lift_now = common.Activated()
+    self.learning_phase = {
+        'grab': common.Activated(), 
+        'lift': common.Activated(), 
+        'hover': common.Activated(), 
+        'drop': common.Activated()
+        }
 
     os.environ['MUJOCO_GL'] = 'egl'
     self.interesting_geom = [13,14,17,18]
@@ -221,10 +225,12 @@ class DMC:
     return reward, contacts, contact_forces
 
 
-  def touch_reward(self, number_contacts, learn_force=False, learn_lift=False):
+  def calculate_grab_reward_contactbased(self, learn_force=False, learn_lift=False):
     # thumb start pos=".03 0 .045"
     # finger start pos="-.03 0 .045"
     # -> tumb finger left, thumb right -> but flip once because in the air 
+
+    number_contacts = self._env.physics.data.ncon
 
     n_boxes = int(self.task.split("_")[1])
     box_names = ['box' + str(b) for b in range(n_boxes)]
@@ -345,24 +351,55 @@ class DMC:
 
 
   def learn_to_grab_reward(self, current_step):
-    # original parameters
-
-    ncon = self._env.physics.data.ncon
-    # learn close to box
-    if not self.should_grab_now():
-        contacts = self.touch_reward(ncon, learn_lift=False)
+    if self.learning_phase('grab')():
+        # learn contact with box
+        return self.calculate_grab_reward_contactbased(learn_lift=False)
+    elif self.learning_phase('lift')():
+        # learn lift box
+        return self.calculate_grab_reward_contactbased(learn_lift=True)
+    elif self.learning_phase('hover')():
+        # learn hover box
+        return self.calculate_box2target_reward(drop=False), 0.0, 0.0
+    elif self.learning_phase('drop')():
+        # learn drop box
+        return self.calculate_box2target_reward(drop=True), 0.0, 0.0
+    else:
+        # learn to be close to box
+        contacts = self.calculate_grab_reward_contactbased(learn_lift=False)
         output = self.finger_close_reward()
         return (output[0], contacts[1], output[1])
-    # learn contact with box
-    elif not self.should_lift_now():
-        return self.touch_reward(ncon, learn_lift=False)
-    # learn lift box
-    else: # current_step >= 1000000:
-        return self.touch_reward(ncon, learn_lift=True)
-    # last idea: learn to have the box which is grabed directly above other box
+    
+
+  def calculate_box2target_reward(self, drop=False):
+    # check if box is above target
+    sim = self._env.physics
+    target_pos = sim.body_2d_pose('target')[:2]
+    target_pos_z = target_pos[1]
+    target_pos_x = target_pos[0]
+    n_boxes = int(self.task.split("_")[1])
+    box_names = ['box' + str(b) for b in range(n_boxes)]
+    box_pos = sim.body_2d_pose(box_names)[:,:2]
+    box_pos_z = box_pos[:,1]
+    box_pos_x = box_pos[:,0]
+
+    for box1, id in zip(box_names, range(n_boxes)):
+      if box_pos_z[id] > target_pos_z and np.abs(box_pos_x[id] - target_pos_x) < 0.02:
+        
+        if drop:
+          # check that no contact between box and finger
+          ncon = sim.data.ncon
+          for i in range(ncon):
+            con = self._env.physics.data.contact[i]
+            con_object1 = con.geom1
+            con_object2 = con.geom2
+            if con_object1 in self.fingertips or con_object2 in self.fingertips:
+              return 0
+        return 1
+
+    return 0
 
 
-  def calculate_grab_reward(self):
+  def calculate_grab_reward_distance(self):
     # ideas: increase distance to wall, increase distance to other boxes
     _CLOSE = .03    # (Meters) Distance below which a thing is considered close.
     _FAR = .065       # (Meters) Distance above which a thing is considered far.
@@ -478,9 +515,8 @@ class DMC:
   def set_current_step(self, step):
       self.current_step = step
 
-  def set_learning_phase(self, should_grab_now, should_lift_now):
-      self.should_grab_now = should_grab_now
-      self.should_lift_now = should_lift_now
+  def set_learning_phase(self, learning_phase):
+      self.learning_phase = learning_phase('should_grab_now')
 
 
 class Atari:

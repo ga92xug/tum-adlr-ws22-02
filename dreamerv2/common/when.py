@@ -35,6 +35,9 @@ class Activated:
 
     def activate(self):
         self.activated = True
+    
+    def deactivate(self):
+        self.activated = False
 
     def __call__(self):
         return self.activated
