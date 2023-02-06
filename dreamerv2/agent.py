@@ -307,7 +307,7 @@ class ActorCritic(common.Module):
         # combine rewards and normalize
         if self.config.only_stacking:
             seq['reward'] = stacking_reward
-        elif self.config.only_target:
+        elif self.config.only_target_pos:
             seq['reward'] = target_pos_reward
         else:
             seq['reward'] = grab_reward
