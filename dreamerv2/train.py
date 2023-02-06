@@ -76,7 +76,7 @@ def main():
         'grab': common.Activated(), 
         'lift': common.Activated(), 
         'hover': common.Activated(), 
-        'drop': common.Activated()
+        'drop': common.Activated(),
       }
 
   import tensorflow as tf
@@ -293,13 +293,22 @@ def main():
     [env.set_learning_phase(learning_phase) for env in eval_envs]
     if step >= config.start_external_reward and False:
       # linear fade-in from grab to stacking reward
-      config = config.update({
-          'reward_weight': 1.0,
-          'grab_reward_weight': (1.0 - (step.value - config.start_external_reward)\
-                                / (config.steps - config.start_external_reward)),
-          'stacking_reward_weight': (0.0 + (step.value - config.start_external_reward)\
-                                / (config.steps - config.start_external_reward))
-      })
+      if config.only_stack:
+          config = config.update({
+              'reward_weight': 0.0,
+              'grab_reward_weight': 0.0,#(1.0 - (step.value - config.start_external_reward)\
+                                    #/ (config.steps - config.start_external_reward)),
+              'stacking_reward_weight': 1.0,#(0.0 + (step.value - config.start_external_reward)\
+                                    #/ (config.steps - config.start_external_reward))
+          })
+      else:
+          config = config.update({
+              'reward_weight': 1.0,
+              'grab_reward_weight': (1.0 - (step.value - config.start_external_reward)\
+                                    / (config.steps - config.start_external_reward)),
+              'stacking_reward_weight': (0.0 + (step.value - config.start_external_reward)\
+                                    / (config.steps - config.start_external_reward))
+          })
 
     logger.write()
     print('Start evaluation.')
