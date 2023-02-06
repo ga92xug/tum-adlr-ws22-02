@@ -175,8 +175,8 @@ def main():
 
     # we only want exactly one active learning phase at a time
     count_active_phases = sum([learning_phase[phase]() for phase in ['grab', 'lift', 'hover', 'drop']])
-    if count_active_phases != 1:
-        raise Exception(f'There are {count_active_phases} active phases, but there should be exactly one.')
+    if count_active_phases >= 1:
+        raise Exception(f'There are {count_active_phases} active phases, but there should be max one.')
 
     stacking_reward = float(ep['stacking_reward'].astype(np.float64).sum())
     # contacts
