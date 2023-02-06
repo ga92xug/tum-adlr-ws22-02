@@ -172,16 +172,19 @@ def main():
         learning_phase['drop'].activate()
         queue = deque(maxlen=MAX_SIZE)
         print('Activating drop now')
+      '''
       elif config.meta_learn_stacking and len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['stacking']():
         # learned to stack the boxes
         learning_phase['lift'].deactivate()
         learning_phase['stacking'].activate()
+        config
         queue = deque(maxlen=MAX_SIZE)
         print('Activating stacking now')
+      '''
 
     # we only want exactly one active learning phase at a time
     count_active_phases = sum([learning_phase[phase]() for phase in ['grab', 'lift', 'hover', 'drop']])
-    if count_active_phases >= 1:
+    if count_active_phases >= 1 and config.meta_learn:
         raise Exception(f'There are {count_active_phases} active phases, but there should be max one.')
 
     stacking_reward = float(ep['stacking_reward'].astype(np.float64).sum())
@@ -295,11 +298,12 @@ def main():
 
     [env.set_current_step(step.value) for env in train_envs]
     [env.set_current_step(step.value) for env in eval_envs]
-    [env.set_learning_phase(learning_phase) for env in train_envs]
-    [env.set_learning_phase(learning_phase) for env in eval_envs]
+    if config.meta_learn:
+        [env.set_learning_phase(learning_phase) for env in train_envs]
+        [env.set_learning_phase(learning_phase) for env in eval_envs]
     if step >= config.start_external_reward and False:
       # linear fade-in from grab to stacking reward
-      if learning_phase['stacking']():
+      if config.only_stacking:
           config = config.update({
               'reward_weight': 0.0,
               'grab_reward_weight': 0.0,#(1.0 - (step.value - config.start_external_reward)\
