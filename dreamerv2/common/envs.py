@@ -129,6 +129,7 @@ class DMC:
         'reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
         'grab_reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
         'stacking_reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
+        'target_pos_reward': gym.spaces.Box(-np.inf, np.inf, (), dtype=np.float32),
         'is_first': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'is_last': gym.spaces.Box(0, 1, (), dtype=np.bool),
         'is_terminal': gym.spaces.Box(0, 1, (), dtype=np.bool),
