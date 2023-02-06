@@ -293,7 +293,7 @@ def main():
     [env.set_learning_phase(learning_phase) for env in eval_envs]
     if step >= config.start_external_reward and False:
       # linear fade-in from grab to stacking reward
-      if config.only_stack:
+      if config.only_stacking:
           config = config.update({
               'reward_weight': 0.0,
               'grab_reward_weight': 0.0,#(1.0 - (step.value - config.start_external_reward)\
