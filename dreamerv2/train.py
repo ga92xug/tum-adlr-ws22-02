@@ -257,8 +257,9 @@ def main():
     print('Pretrain agent.')
     for _ in range(config.pretrain):
       train_agent(next(train_dataset))
+  # test if 1k or 500
   train_policy = lambda *args: agnt.policy(
-      *args, mode='explore' if should_expl(step) else 'train')
+      *args, mode='explore' if should_expl(step) or ((step / 500) % 2 == 0) else 'train')  
   eval_policy = lambda *args: agnt.policy(*args, mode='eval')
 
   def train_step(tran, worker):
@@ -277,6 +278,8 @@ def main():
   while step < config.steps:
     #print(f'Step {step.value}')
     #print('should_expl', should_expl(step), should_expl._until)
+    print('Episode 500', (step / 500))
+    print('Episode 1000', (step / 1000))
 
     [env.set_current_step(step.value) for env in train_envs]
     [env.set_current_step(step.value) for env in eval_envs]

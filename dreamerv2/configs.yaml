@@ -30,6 +30,8 @@ defaults:
   precision: 16
   jit: True
 
+  
+
   # Reward
   reward_weight: 0.0
   grab_reward_weight: 1.0
