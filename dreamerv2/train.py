@@ -259,8 +259,12 @@ def main():
     for _ in range(config.pretrain):
       train_agent(next(train_dataset))
   # test if 1k or 500
-  train_policy = lambda *args: agnt.policy(
-      *args, mode='explore' if should_expl(step) or ((step / 500) % 2 == 0) else 'train')  
+  if config.multi_agent:
+      train_policy = lambda *args: agnt.policy(
+          *args, mode='explore' if should_expl(step) or ((step / 500) % 2 == 0) else 'train')  
+  else:
+      train_policy = lambda *args: agnt.policy(
+          *args, mode='explore' if should_expl(step) else 'train')
   eval_policy = lambda *args: agnt.policy(*args, mode='eval')
 
   def train_step(tran, worker):
@@ -301,7 +305,6 @@ def main():
     logger.add(agnt.report(next(eval_dataset)), prefix='eval')
     eval_driver(eval_policy, episodes=config.eval_eps)
     print('Start training.')
-    agnt.set_mode('train')
     train_driver(train_policy, steps=config.eval_every)
     agnt.save(logdir / 'variables.pkl')
 
