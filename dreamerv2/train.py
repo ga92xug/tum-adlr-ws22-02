@@ -261,7 +261,7 @@ def main():
   # test if 1k or 500
   if config.multi_agent:
       train_policy = lambda *args: agnt.policy(
-          *args, mode='explore' if ((step / 500) % 2 == 0) else 'train')  
+          *args, mode='explore' if ((step.value / 500) % 2 == 0) else 'train')  
           # should_expl(step) or
   else:
       train_policy = lambda *args: agnt.policy(
