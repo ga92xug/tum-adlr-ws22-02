@@ -553,8 +553,8 @@ class DMC:
     box_names = ['box' + str(b) for b in range(n_boxes)]
     box_pos = sim.body_2d_pose(box_names)[:,:2]
     target_pos_x = sim.named.model.body_pos['target', 'x']
-    print("Target:")
-    print(target_pos_x)
+    #print("Target:")
+    #print(target_pos_x)
     box_pos_z = box_pos[:,1]
     box_pos_x = box_pos[:,0]
     
