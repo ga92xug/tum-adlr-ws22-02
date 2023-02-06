@@ -76,8 +76,9 @@ class Agent(common.Module):
     reward = lambda seq: self.wm.heads['reward'](seq['feat']).mode()
     grab_reward = lambda seq: self.wm.heads['grab_reward'](seq['feat']).mode()
     stacking_reward = lambda seq: self.wm.heads['stacking_reward'](seq['feat']).mode()
+    target_pos_reward = lambda seq: self.wm.heads['target_pos_reward'](seq['feat']).mode()
     metrics.update(self._task_behavior.train(
-        self.wm, start, data['is_terminal'], reward, grab_reward, stacking_reward))
+        self.wm, start, data['is_terminal'], reward, grab_reward, stacking_reward, target_pos_reward))
     if self.config.expl_behavior != 'greedy':
       mets = self._expl_behavior.train(start, outputs, data)[-1]
       metrics.update({'expl_' + key: value for key, value in mets.items()})
@@ -126,6 +127,7 @@ class WorldModel(common.Module):
     self.heads['reward'] = common.MLP([], **config.reward_head)
     self.heads['grab_reward'] = common.MLP([], **config.grab_reward_head)
     self.heads['stacking_reward'] = common.MLP([], **config.stacking_reward_head)
+    self.heads['target_pos_reward'] = common.MLP([], **config.target_pos_reward_head)
     if config.pred_discount:
       self.heads['discount'] = common.MLP([], **config.discount_head)
     for name in config.grad_heads:
@@ -271,12 +273,13 @@ class ActorCritic(common.Module):
     self.rewnorm = common.StreamNorm(**self.config.reward_norm)
     self.grab_rewnorm = common.StreamNorm(**self.config.reward_norm)
     self.stacking_rewnorm = common.StreamNorm(**self.config.reward_norm)
+    self.target_pos_rewnorm = common.StreamNorm(**self.config.reward_norm)
     self.combiner_rewnorm = common.StreamNorm(**self.config.reward_norm)
 
   def set_mode(self, mode):
     self._mode = mode
 
-  def train(self, world_model, start, is_terminal, reward_fn, grab_reward_fn, stacking_reward_fn):
+  def train(self, world_model, start, is_terminal, reward_fn, grab_reward_fn, stacking_reward_fn, target_pos_reward_fn):
     metrics = {}
     hor = self.config.imag_horizon
     # The weights are is_terminal flags for the imagination start states.
@@ -292,16 +295,20 @@ class ActorCritic(common.Module):
         # compute additional rewards
         grab_reward = grab_reward_fn(seq)
         stacking_reward = stacking_reward_fn(seq)
+        target_pos_reward = target_pos_reward_fn(seq)
 
         # norm of individual rewards
         #normal_reward, normal_mets1 = self.rewnorm(reward)
         #grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
         grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
         stacking_reward, stacking_mets1 = self.stacking_rewnorm(stacking_reward)
+        target_pos_reward, target_pos_mets1 = self.target_pos_rewnorm(target_pos_reward)
         
         # combine rewards and normalize
         if self.config.only_stacking:
             seq['reward'] = stacking_reward
+        elif self.config.only_target:
+            seq['reward'] = target_pos_reward
         else:
             seq['reward'] = grab_reward
         #seq_rewards = self.config.reward_weight * normal_reward \
@@ -313,6 +320,7 @@ class ActorCritic(common.Module):
         # normal_mets1 = {f'normal_reward_{k}': v for k, v in normal_mets1.items()}
         grab_mets1 = {f'grab_reward_{k}': v for k, v in grab_mets1.items()}
         stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
+        target_pos_mets1 = {f'target_pos_reward_{k}': v for k, v in target_pos_mets1.items()}
         # combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
       elif self._mode == 'train':
         print('agent _mode is train')

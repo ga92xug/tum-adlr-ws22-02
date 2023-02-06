@@ -36,6 +36,7 @@ defaults:
   multi_agent: True
   meta_learn_stacking: True
   only_stacking: False
+  only_target_pos: False
 
 
   # Reward
