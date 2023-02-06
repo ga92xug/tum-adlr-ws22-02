@@ -564,6 +564,8 @@ class DMC:
             # box on target box x pos:
             if ((abs(box_pos_x[i] - target_pos_x)<0.023)):
                 reward += 1
+                # max 1 reward for frame!!!
+                return reward, box_pos, box_pos_z
         
     return reward, box_pos, box_pos_z
 
