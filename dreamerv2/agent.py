@@ -70,7 +70,6 @@ class Agent(common.Module):
     metrics = {}
     # print('train', data)
     # grab_reward is in data
-    print('train', data)
     state, outputs, mets = self.wm.train(data, state)
     metrics.update(mets)
     start = outputs['post']

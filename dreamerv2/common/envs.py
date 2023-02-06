@@ -625,8 +625,6 @@ class DMC:
     obs.update({
         k: v for k, v in dict(time_step.observation).items()
         if k not in self._ignored_keys})
-    print("obs")
-    print(obs)
     return obs
 
   

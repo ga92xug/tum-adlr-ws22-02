@@ -51,6 +51,7 @@ class Plan2Explore(common.Module):
 
     self.grab_reward = lambda seq: self.wm.heads['grab_reward'](seq['feat']).mode()
     self.stacking_reward = lambda seq: self.wm.heads['stacking_reward'](seq['feat']).mode()
+    self.target_pos_reward = lambda seq: self.wm.heads['target_pos_reward'](seq['feat']).mode()
 
   def set_mode(self, mode):
     self._mode = mode
@@ -76,7 +77,7 @@ class Plan2Explore(common.Module):
       inputs = tf.concat([inputs, action], -1)
     metrics.update(self._train_ensemble(inputs, target))
     metrics.update(self.ac.train(
-        self.wm, start, data['is_terminal'], self._intr_reward, self.grab_reward, self.stacking_reward))
+        self.wm, start, data['is_terminal'], self._intr_reward, self.grab_reward, self.stacking_reward, self.target_pos_reward))
     return None, metrics
 
   def _intr_reward(self, seq):
