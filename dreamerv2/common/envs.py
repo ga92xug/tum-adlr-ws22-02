@@ -10,6 +10,8 @@ import numpy as np
 import warnings
 import time
 
+import common
+
 
 class GymWrapper:
 
@@ -80,6 +82,12 @@ class DMC:
     self.fingertips = [13,14,17,18]
     self.boxes = [19,20,21,21]
     self.current_step = 0
+    self.learning_phase = {
+        'grab': common.Activated(), 
+        'lift': common.Activated(), 
+        'hover': common.Activated(), 
+        'drop': common.Activated()
+        }
 
     os.environ['MUJOCO_GL'] = 'egl'
     self.interesting_geom = [13,14,17,18]
@@ -218,10 +226,16 @@ class DMC:
     return reward, contacts, contact_forces
 
 
-  def touch_reward(self, number_contacts, learn_force=False, learn_lift=False):
+  def calculate_grab_reward_contactbased(self, learn_force=False, learn_lift=False):
+    # thumb start pos=".03 0 .045"
+    # finger start pos="-.03 0 .045"
+    # -> tumb finger left, thumb right -> but flip once because in the air 
+
+    number_contacts = self._env.physics.data.ncon
+
     n_boxes = int(self.task.split("_")[1])
     box_names = ['box' + str(b) for b in range(n_boxes)]
-    far = .065
+    far = .1
     reward = 0
     contacts = 0
     contact_forces = 0
@@ -264,22 +278,36 @@ class DMC:
             else:
                 # one finger is already involved
                 if (con_object1 not in fingers_involved) and (con_object2 in touched_boxes):
-                    # new finger is involved and box is already touched
-                    if learn_lift:
-                        # box has to be lifted to get reward
-                        box_name = sim.model.id2name(con_object2, 'geom')
-                        box_pos_z = sim.named.data.geom_xpos[box_name, 'z']
-                        box_pos_x = sim.named.data.geom_xpos[box_name, 'x']
-                        if box_pos_z > 0.0655 and box_pos_z<0.3 and box_pos_x>(-0.682843+0.3) and box_pos_x<(0.682843-0.3):
-                            # not touching other boxes
-                            distance_other = [sim.site_distance(box_name, box2) for box2 in box_names if box2 != box_name]
-                            if np.min(distance_other) > far:
+                    box_name = sim.model.id2name(con_object2, 'geom')
+                    box_pos_z = sim.named.data.geom_xpos[box_name, 'z']
+                    box_pos_x = sim.named.data.geom_xpos[box_name, 'x']
+
+                    hand_pos = sim.body_2d_pose('hand')[:2]
+                    hand_pos_x = hand_pos[0]
+                    distance_x = abs(box_pos_x - hand_pos_x)
+
+                    thumb_pos = sim.body_2d_pose('thumbtip')[:2]
+                    thumb_pos_x = thumb_pos[0]
+                    finger_pos = sim.body_2d_pose('fingertip')[:2]
+                    finger_pos_x = finger_pos[0]
+
+                    if distance_x < 0.022 and ((thumb_pos_x >= box_pos_x and finger_pos_x <= box_pos_x) \
+                      or (thumb_pos_x <= box_pos_x and finger_pos_x >= box_pos_x)):
+                        if learn_lift:
+                            # box has to be lifted to get reward
+                            box_name = sim.model.id2name(con_object2, 'geom')
+                            box_pos_z = sim.named.data.geom_xpos[box_name, 'z']
+                            box_pos_x = sim.named.data.geom_xpos[box_name, 'x']
+                            if box_pos_z > 0.04:
+                                # not touching other boxes
+                                # distance_other = [sim.site_distance(box_name, box2) for box2 in box_names if box2 != box_name]
+                                # np.min(distance_other) > 0.1 and 
+                                
                                 reward = 1
                                 return reward, contacts, contact_forces
-                    else:
-                        # box only has to be touched to get reward
-                        reward = 1
-                        return reward, contacts, contact_forces
+                        else:
+                            reward = 1
+                            return reward, contacts, contact_forces
 
                 elif con_object2 not in touched_boxes:
                     # new box is touched and we don't care about which finger is involved
@@ -296,6 +324,12 @@ class DMC:
     box_pos_x = box_pos[:,0]
     hand_pos = sim.body_2d_pose('hand')[:2]
     hand_pos_x = hand_pos[0]
+    hand_pos_z = hand_pos[1]
+
+    thumb_pos = sim.body_2d_pose('thumbtip')[:2]
+    thumb_pos_x = thumb_pos[0]
+    finger_pos = sim.body_2d_pose('fingertip')[:2]
+    finger_pos_x = finger_pos[0]
     
     distances_x = []
     for box1, id in zip(box_names, range(n_boxes)):
@@ -303,29 +337,91 @@ class DMC:
       # one finger left one finger right
       distance_x = np.abs([box_pos_x[id] - hand_pos_x])
       distances_x.append(distance_x)
-      # print('distance_x', distance_x)
-      # previous distance_x < 0.044
-      if sim.site_distance('pinch', box1) < _CLOSE and distance_x < 0.09:
-          reward = 1
-          return reward, distance_x
+    
+      # pinch close to box and hand above box
+      if sim.site_distance('pinch', box1) < _CLOSE and distance_x < 0.022:
+          # finger to either side of box 
+          if (thumb_pos_x >= box_pos_x[id] and finger_pos_x <= box_pos_x[id]) \
+            or (thumb_pos_x <= box_pos_x[id] and finger_pos_x >= box_pos_x[id]):
+              reward = 1
+              return reward, distance_x
 
     return 0.0, np.min(distances_x)
 
 
   def learn_to_grab_reward(self, current_step):
-    ncon = self._env.physics.data.ncon
-    # learn close to box
-    if current_step < 500000:
-        contacts = self.touch_reward(ncon, learn_lift=False)
+    #print(self.learning_phase['grab'], type(self.learning_phase['grab']))
+    if self.learning_phase['grab']():
+        # learn contact with box
+        return self.calculate_grab_reward_contactbased(learn_lift=False)
+    elif self.learning_phase['lift']():
+        # learn lift box
+        return self.calculate_grab_reward_contactbased(learn_lift=True)
+    elif self.learning_phase['hover']():
+        # learn hover box
+        return self.calculate_box2target_reward(drop=False), 0.0, 0.0
+    elif self.learning_phase['drop']():
+        # learn drop box
+        return self.calculate_box2target_reward(drop=True), 0.0, 0.0
+    else:
+        # learn to be close to box
+        contacts = self.calculate_grab_reward_contactbased(learn_lift=False)
         output = self.finger_close_reward()
         return (output[0], contacts[1], output[1])
-    # learn contact with box
-    elif current_step < 1000000:
-        return self.touch_reward(ncon, learn_lift=False)
-    # learn lift box
-    else: # current_step < 1000000:
-        return self.touch_reward(ncon, learn_lift=True)
+    
 
+  def calculate_box2target_reward(self, drop=False):
+    # check if box is above target
+    sim = self._env.physics
+    target_pos = sim.body_2d_pose('target')[:2]
+    target_pos_z = target_pos[1]
+    target_pos_x = target_pos[0]
+    n_boxes = int(self.task.split("_")[1])
+    box_names = ['box' + str(b) for b in range(n_boxes)]
+    box_pos = sim.body_2d_pose(box_names)[:,:2]
+    box_pos_z = box_pos[:,1]
+    box_pos_x = box_pos[:,0]
+
+    for box1, id in zip(box_names, range(n_boxes)):
+      if box_pos_z[id] > target_pos_z and np.abs(box_pos_x[id] - target_pos_x) < 0.02:
+        
+        if drop:
+          # check that no contact between box and finger
+          ncon = sim.data.ncon
+          for i in range(ncon):
+            con = self._env.physics.data.contact[i]
+            con_object1 = con.geom1
+            con_object2 = con.geom2
+            if con_object1 in self.fingertips or con_object2 in self.fingertips:
+              return 0
+        return 1
+
+    return 0
+
+
+  def calculate_grab_reward_distance(self):
+    # ideas: increase distance to wall, increase distance to other boxes
+    _CLOSE = .03    # (Meters) Distance below which a thing is considered close.
+    _FAR = .065       # (Meters) Distance above which a thing is considered far.
+    # site: grasp, pinch
+    sim = self._env.physics
+    n_boxes = int(self.task.split("_")[1])
+    #print("Box Pos Z Values:")
+    box_names = ['box' + str(b) for b in range(n_boxes)]
+    box_pos = sim.body_2d_pose(box_names)[:,:2]
+    box_pos_z = box_pos[:,1]
+    box_pos_x = box_pos[:,0]
+
+    for box1, id in zip(box_names, range(n_boxes)):
+      if sim.site_distance('pinch', box1) < _CLOSE \
+        and box_pos_z[id] > 0.0655 and box_pos_z[id]<0.3 and box_pos_x[id]>(-0.682843+0.3) and box_pos_x[id]<(0.682843-0.3):
+          # not close to any other box
+          distance_other = [sim.site_distance(box1, box2) for box2 in box_names if box2 != box1]
+          if np.min(distance_other) > _FAR:
+              reward = 1
+              return reward
+
+    return 0.0
 
   def calculate_grab_reward(self):
     # ideas: increase distance to wall, increase distance to other boxes
@@ -351,6 +447,39 @@ class DMC:
 
     return 0.0
 
+  def check_no_contact(self, sim, box_name):
+      
+      number_contacts = sim.data.ncon
+      fingertips = self.fingertips
+      boxes = self.boxes
+      for i in range(number_contacts):
+          contact = sim.data.contact[i]
+          con_object1 = contact.geom1
+          con_object2 = contact.geom2
+
+          # swap if needed
+          if con_object2 in fingertips:
+              con_object1, con_object2 = con_object2, con_object1
+
+          if (con_object1 in fingertips) and (con_object2 in boxes):
+              #print('One finger and one box involved')
+              # exactly one finger and one box is part of contact 
+              # (we don't want fingers to touch each other)
+              box_name_2 = sim.model.id2name(con_object2, 'geom')
+              box_pos_z = sim.named.data.geom_xpos[box_name_2, 'z']
+              box_pos_x = sim.named.data.geom_xpos[box_name_2, 'x']
+              #print("Box2: "+str(box_pos_x)+","+str(box_pos_z))
+              #print("Box2: "+box_name_2)
+              #print("Box1: "+box_name)
+              box_pos_z_1 = sim.named.data.geom_xpos[box_name, 'z']
+              box_pos_x_1 = sim.named.data.geom_xpos[box_name, 'x']
+              #print("Box1: "+str(box_pos_x_1)+","+str(box_pos_z_1))
+              if box_name == box_name_2:
+                  return False
+              
+      return True
+
+
   def calculate_box_pos(self, prev_ts_box_pos, prev_ts):
     box_height_threshold = 0.001
     reward = 0
@@ -372,15 +501,23 @@ class DMC:
         # (values show wall center at x-pos)
         #print("Prev: "+str(prev_box_pos_z))
         #print(box_pos_z)
-        '''
+        
         # Stacking reward version 1: 
-        if (box_pos_z[i] > 0.065) and (box_pos_z[i]<0.18) and (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)): # total box height ca. 0.044 -> ca. 0.066 for box stacked on other box
-            if box_pos_z[i] > (prev_box_pos_z[i] + box_height_threshold):
+        if (box_pos_z[i] > 0.065) and (box_pos_z[i]<0.18) and (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)): # total box height ca. 0.044 -> ca. 0.065 for box stacked on other box
+            # box height higher than before
+            if (box_pos_z[i] > (prev_box_pos_z[i] + box_height_threshold)):
                 reward += 1
-            if (box_pos_z[i] + box_height_threshold) < prev_box_pos_z[i]:
-                reward -= 1
-        elif (box_pos_z[i]<0.18):
-            if (box_pos_z[i] + box_height_threshold) < prev_box_pos_z[i]:
+            # box no contact with finger
+            elif (self.check_no_contact(sim=sim, box_name=box_names[i])):
+                # box above other box given custom range --> falling on other box
+                for j in range(n_boxes):
+                    if (i!=j) and ((abs(box_pos_x[i] - box_pos_x[j])<0.023) and (box_pos_z[i]>box_pos_z[j]+0.04)):
+                        #print("Z-Pos: "+str(box_pos_z[i]) + ',' + str(box_pos_z[j]))
+                        #print("X-Pos: "+str(box_pos_x[i]) + ',' + str(box_pos_x[j]))
+                        if (box_pos_z[i]) < prev_box_pos_z[i]: # avoid reward for same position
+                            reward += 1
+            # subtract reward when falling and not above other box
+            elif (box_pos_z[i] + box_height_threshold) < prev_box_pos_z[i]:
                 reward -= 1
                 
         '''
@@ -400,7 +537,7 @@ class DMC:
                     if prev_ts.site_distance('box'+str(j), 'box'+str(i)) < 0.05:
                         if (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)):
                             reward -= 1
-        
+        '''
         
     return reward, box_pos, box_pos_z
 
@@ -425,7 +562,7 @@ class DMC:
       
       # calculate contact reward
       ncon = self._env.physics.data.ncon
-      # grab_reward, contact, contact_force = self.calculate_contacts(ncon)
+      # # grab_reward, contact, contact_force = self.calculate_contacts(ncon)
       grab_reward, contact, contact_force = self.learn_to_grab_reward(self.current_step)
       #grab_reward = self.calculate_grab_reward()
       stacking_reward, box_pos, box_pos_z = self.calculate_box_pos(previous_timestep_box_pos, prev_ts)
@@ -482,6 +619,9 @@ class DMC:
 
   def set_current_step(self, step):
       self.current_step = step
+
+  def set_learning_phase(self, learning_phase):
+      self.learning_phase = learning_phase
 
 
 class Atari:

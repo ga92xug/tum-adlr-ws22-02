@@ -13,7 +13,8 @@ defaults:
   action_repeat: 1
   steps: 1e8
   log_every: 1e4
-  eval_every: 1e5
+  # eval_every: 1e5
+  eval_every: 1e6
   eval_eps: 1
   prefill: 10000
   pretrain: 1
@@ -28,6 +29,12 @@ defaults:
   log_keys_max: '^$'
   precision: 16
   jit: True
+
+  meta_learn: True
+  meta_learn_hover: True
+  meta_learn_drop: True
+  multi_agent: True
+
 
   # Reward
   reward_weight: 0.0

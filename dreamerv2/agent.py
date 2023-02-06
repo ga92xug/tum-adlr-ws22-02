@@ -16,6 +16,7 @@ class Agent(common.Module):
     self.tfstep = tf.Variable(int(self.step), tf.int64)
     self.wm = WorldModel(config, obs_space, self.tfstep)
     self._task_behavior = ActorCritic(config, self.act_space, self.tfstep, self.obs_space)
+    self._task_behavior.set_mode('train')
     if config.expl_behavior == 'greedy':
       self._expl_behavior = self._task_behavior
     else:
@@ -23,13 +24,7 @@ class Agent(common.Module):
           self.config, self.act_space, self.wm, self.tfstep,
           lambda seq: self.wm.heads['reward'](seq['feat']).mode())
           #lambda seq: self.wm.heads['grab_reward'](seq['feat']).mode())
-    self._mode = self.set_mode('train')
-
-  def set_mode(self, mode):
-    self._mode = mode
-    self._task_behavior.set_mode(self._mode)
-    if self._expl_behavior is not self._task_behavior:
-      self._expl_behavior.set_mode(self._mode)
+    self._expl_behavior.set_mode('explore')
     
 
   @tf.function
@@ -49,15 +44,18 @@ class Agent(common.Module):
         latent, action, embed, obs['is_first'], sample)
     feat = self.wm.rssm.get_feat(latent)
     if mode == 'eval':
+      print('policy is evaluating')
       actor = self._task_behavior.actor(feat)
       action = actor.mode()
       noise = self.config.eval_noise
     elif mode == 'explore':
+      print('policy is exploring')
       # self._expl_behavior.set_obs(obs)
       actor = self._expl_behavior.actor(feat)
       action = actor.sample()
       noise = self.config.expl_noise
     elif mode == 'train':
+      print('policy is training')
       actor = self._task_behavior.actor(feat)
       action = actor.sample()
       noise = self.config.expl_noise
@@ -289,33 +287,37 @@ class ActorCritic(common.Module):
     with tf.GradientTape() as actor_tape:
       seq = world_model.imagine(self.actor, start, is_terminal, hor)
       reward = reward_fn(seq)
-      if self._mode == 'train':
+      if self._mode == 'explore':
+        print('agent _mode is explore')
         # compute additional rewards
         grab_reward = grab_reward_fn(seq)
-        stacking_reward = stacking_reward_fn(seq)
+        # stacking_reward = stacking_reward_fn(seq)
 
         # norm of individual rewards
-        normal_reward, normal_mets1 = self.rewnorm(reward)
+        #normal_reward, normal_mets1 = self.rewnorm(reward)
         grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
         # grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
-        stacking_reward, stacking_mets1 = self.stacking_rewnorm(stacking_reward)
+        # stacking_reward, stacking_mets1 = self.stacking_rewnorm(stacking_reward)
         
         # combine rewards and normalize
-        seq_rewards = self.config.grab_reward_weight * grab_reward + self.config.stacking_reward_weight * stacking_reward
-        '''
-        seq_rewards = self.config.reward_weight * normal_reward \
-            + self.config.grab_reward_weight * grab_reward \
-            + self.config.stacking_reward_weight * stacking_reward
-        '''
-        seq['reward'], combiner_mets1 = self.combiner_rewnorm(seq_rewards)
+        seq['reward'] = grab_reward
+        #seq_rewards = self.config.reward_weight * normal_reward \
+        #  + self.config.grab_reward_weight * grab_reward \
+        #  + self.config.stacking_reward_weight * stacking_reward
+        #seq['reward'], combiner_mets1 = self.combiner_rewnorm(seq_rewards)
         
         # metrics
         # normal_mets1 = {f'normal_reward_{k}': v for k, v in normal_mets1.items()}
         grab_mets1 = {f'grab_reward_{k}': v for k, v in grab_mets1.items()}
-        stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
-        combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
-
+        # stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
+        # combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
+      elif self._mode == 'train':
+        print('agent _mode is train')
+        # train
+        seq['reward'], mets1 = self.rewnorm(reward)
+        mets1 = {f'reward_{k}': v for k, v in mets1.items()}
       else:
+        print('agent _mode is eval')
         # eval
         seq['reward'], mets1 = self.rewnorm(reward)
         mets1 = {f'reward_{k}': v for k, v in mets1.items()}
@@ -326,9 +328,9 @@ class ActorCritic(common.Module):
       critic_loss, mets4 = self.critic_loss(seq, target)
     metrics.update(self.actor_opt(actor_tape, actor_loss, self.actor))
     metrics.update(self.critic_opt(critic_tape, critic_loss, self.critic))
-    if self._mode == 'train':
-      metrics.update(**grab_mets1, **stacking_mets1, **combined_mets1, **mets2, **mets3, **mets4)
-      #metrics.update(**normal_mets1, **grab_mets1, **stacking_mets1, **combined_mets1, \
+    if self._mode == 'explore':
+      metrics.update(**grab_mets1, **mets2, **mets3, **mets4)
+      # metrics.update(**normal_mets1, **grab_mets1, **stacking_mets1, **combined_mets1, \
       #   **mets2, **mets3, **mets4)
     else:
       metrics.update(**mets1, **mets2, **mets3, **mets4)

@@ -167,7 +167,7 @@ def load_episodes(directory, capacity=None, minlen=1):
   for filename in filenames:
     try:
       with filename.open('rb') as f:
-        episode = np.load(f)
+        episode = np.load(f, allow_pickle=True)
         episode = {k: episode[k] for k in episode.keys()}
     except Exception as e:
       print(f'Could not load episode {str(filename)}: {e}')

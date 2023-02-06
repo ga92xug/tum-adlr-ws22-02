@@ -7,6 +7,8 @@ import re
 import sys
 import warnings
 import time
+from collections import deque
+import pickle
 
 try:
   import rich.traceback
@@ -28,8 +30,8 @@ import agent
 import common
 
 
-def main():
 
+def main():
   configs = yaml.safe_load((
       pathlib.Path(sys.argv[0]).parent / 'configs.yaml').read_text())
   parsed, remaining = common.Flags(configs=['defaults']).parse(known_only=True)
@@ -46,6 +48,36 @@ def main():
   config.save(logdir_downloads / 'config.yaml')
   print(config, '\n')
   print('Logdir', logdir)
+
+  # deque over last 10 episodes(len(episod)=1000)
+  MAX_SIZE = 10
+  if (logdir / 'learn_lift.pkl').exists():
+      try:
+          # legacy code for loading old pickles
+          # 3 elements
+          with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'rb') as f:
+              queue, should_grab_now, should_lift_now = pickle.load(f)
+              learning_phase = {
+                'grab': common.Activated() if should_lift_now() else should_grab_now,
+                'lift': should_lift_now,
+                'hover': common.Activated(), 
+                'drop': common.Activated()
+              }
+      except:
+          with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'rb') as f:
+              queue, learning_phase = pickle.load(f)
+      print('Loaded metadata from learn_lift.pkl')
+      print('queue', queue)
+      for key, value in learning_phase.items():
+          print(f'learning_phase {key}', value)
+  else:
+      queue = deque(maxlen=MAX_SIZE)
+      learning_phase = {
+        'grab': common.Activated(), 
+        'lift': common.Activated(), 
+        'hover': common.Activated(), 
+        'drop': common.Activated()
+      }
 
   import tensorflow as tf
   tf.config.experimental_run_functions_eagerly(not config.jit)
@@ -76,7 +108,9 @@ def main():
   should_log = common.Every(config.log_every)
   should_video_train = common.Every(config.eval_every)
   should_video_eval = common.Every(config.eval_every)
-  should_expl = common.Until(config.expl_until // config.action_repeat)
+  # I think this was a bug in the original code.
+  should_expl = common.Until(config.expl_until)
+  print('should_expl', should_expl._until)
 
   def make_env(mode):
     suite, task = config.task.split('_', 1)
@@ -100,10 +134,50 @@ def main():
     env = common.TimeLimit(env, config.time_limit)
     return env
 
-  def per_episode(ep, mode):
+  def per_episode(ep, mode, queue=None):
     length = len(ep['reward']) - 1
     score = float(ep['reward'].astype(np.float64).sum())
     grab_reward = float(ep['grab_reward'].astype(np.float64).sum())
+
+    if mode == 'train' and config.meta_learn:
+      print('\n')
+      print('Last grab rewards', list(queue))
+      for key, value in learning_phase.items():
+          if value():
+            print(f'learning_phase {key}', value)
+      queue.append(grab_reward)
+      if len(queue) == MAX_SIZE and np.min(queue) > 100 and not learning_phase['grab']() \
+        and not learning_phase['lift']() and not learning_phase['hover']() and not learning_phase['drop']():
+        # learned to be close to the box
+        learning_phase['grab'].activate()
+        queue = deque(maxlen=MAX_SIZE)
+        print('Activating grab now')
+      elif len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['lift']() \
+        and not learning_phase['hover']() and not learning_phase['drop']():
+        # learned to grab the box
+        learning_phase['grab'].deactivate()
+        learning_phase['lift'].activate()
+        queue = deque(maxlen=MAX_SIZE)
+        print('Activating lift now')
+      elif config.meta_learn_hover and len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['hover']() \
+        and not learning_phase['drop']():
+        # learned to lift the box
+        learning_phase['lift'].deactivate()
+        learning_phase['hover'].activate()
+        queue = deque(maxlen=MAX_SIZE)
+        print('Activating hover now')
+      elif config.meta_learn_drop and len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['drop']():
+        # learned to hover the box
+        learning_phase['hover'].deactivate()
+        learning_phase['drop'].activate()
+        queue = deque(maxlen=MAX_SIZE)
+        print('Activating drop now')
+
+    # we only want exactly one active learning phase at a time
+    count_active_phases = sum([learning_phase[phase]() for phase in ['grab', 'lift', 'hover', 'drop']])
+    if count_active_phases >= 1:
+        raise Exception(f'There are {count_active_phases} active phases, but there should be max one.')
+
     stacking_reward = float(ep['stacking_reward'].astype(np.float64).sum())
     # contacts
     contacts = ep['log_contacts'].astype(np.uint32).sum()
@@ -153,7 +227,7 @@ def main():
   act_space = train_envs[0].act_space
   obs_space = train_envs[0].obs_space
   train_driver = common.Driver(train_envs)
-  train_driver.on_episode(lambda ep: per_episode(ep, mode='train'))
+  train_driver.on_episode(lambda ep: per_episode(ep, mode='train', queue=queue))
   train_driver.on_step(lambda tran, worker: step.increment())
   train_driver.on_step(train_replay.add_step)
   train_driver.on_reset(train_replay.add_step)
@@ -184,8 +258,14 @@ def main():
     print('Pretrain agent.')
     for _ in range(config.pretrain):
       train_agent(next(train_dataset))
-  train_policy = lambda *args: agnt.policy(
-      *args, mode='explore' if should_expl(step) else 'train')
+  # test if 1k or 500
+  if config.multi_agent:
+      train_policy = lambda *args: agnt.policy(
+          *args, mode='explore' if ((step.value / 500) % 2 == 0) else 'train')  
+          # should_expl(step) or
+  else:
+      train_policy = lambda *args: agnt.policy(
+          *args, mode='explore' if should_expl(step) else 'train')
   eval_policy = lambda *args: agnt.policy(*args, mode='eval')
 
   def train_step(tran, worker):
@@ -202,28 +282,39 @@ def main():
   train_driver.on_step(train_step)
 
   while step < config.steps:
+    #print(f'Step {step.value}')
+    #print('should_expl', should_expl(step), should_expl._until)
+    print('Episode 500', (step.value / 500))
+    print('Episode 1000', (step.value / 1000))
+
     [env.set_current_step(step.value) for env in train_envs]
     [env.set_current_step(step.value) for env in eval_envs]
+    [env.set_learning_phase(learning_phase) for env in train_envs]
+    [env.set_learning_phase(learning_phase) for env in eval_envs]
     if step >= config.start_external_reward and False:
       # linear fade-in from grab to stacking reward
       config = config.update({
-          'reward_weight': 0.0,
-          'grab_reward_weight': (1.0  - (step.value - config.start_external_reward)\
+          'reward_weight': 1.0,
+          'grab_reward_weight': (1.0 - (step.value - config.start_external_reward)\
                                 / (config.steps - config.start_external_reward)),
-          'stacking_reward_weight':(0.0 + (step.value - config.start_external_reward)\
+          'stacking_reward_weight': (0.0 + (step.value - config.start_external_reward)\
                                 / (config.steps - config.start_external_reward))
       })
 
     logger.write()
     print('Start evaluation.')
-    agnt.set_mode('eval')
     logger.add(agnt.report(next(eval_dataset)), prefix='eval')
     eval_driver(eval_policy, episodes=config.eval_eps)
     print('Start training.')
-    
-    agnt.set_mode('train')
+    # counter = 0
+    # while counter < config.eval_every:
     train_driver(train_policy, steps=config.eval_every)
     agnt.save(logdir / 'variables.pkl')
+
+    with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'wb') as f:
+        pickle.dump((queue, learning_phase), f)
+        print('Saved learn_lift.pkl')
+
   for env in train_envs + eval_envs:
     try:
       env.close()
