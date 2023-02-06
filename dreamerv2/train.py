@@ -139,7 +139,7 @@ def main():
     score = float(ep['reward'].astype(np.float64).sum())
     grab_reward = float(ep['grab_reward'].astype(np.float64).sum())
 
-    if mode == 'train':
+    if mode == 'train' and config.meta_learn:
       print('\n')
       print('Last grab rewards', list(queue))
       for key, value in learning_phase.items():
@@ -159,14 +159,14 @@ def main():
         learning_phase['lift'].activate()
         queue = deque(maxlen=MAX_SIZE)
         print('Activating lift now')
-      elif len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['hover']() \
+      elif config.meta_learn_hover and len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['hover']() \
         and not learning_phase['drop']():
         # learned to lift the box
         learning_phase['lift'].deactivate()
         learning_phase['hover'].activate()
         queue = deque(maxlen=MAX_SIZE)
         print('Activating hover now')
-      elif len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['drop']():
+      elif config.meta_learn_drop and len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['drop']():
         # learned to hover the box
         learning_phase['hover'].deactivate()
         learning_phase['drop'].activate()
@@ -279,8 +279,8 @@ def main():
   while step < config.steps:
     #print(f'Step {step.value}')
     #print('should_expl', should_expl(step), should_expl._until)
-    print('Episode 500', (step / 500))
-    print('Episode 1000', (step / 1000))
+    print('Episode 500', (step.value / 500))
+    print('Episode 1000', (step.value / 1000))
 
     [env.set_current_step(step.value) for env in train_envs]
     [env.set_current_step(step.value) for env in eval_envs]

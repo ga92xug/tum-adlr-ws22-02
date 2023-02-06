@@ -30,7 +30,10 @@ defaults:
   precision: 16
   jit: True
 
-  
+  meta_learn: True
+  meta_learn_hover: True
+  meta_learn_drop: True
+
 
   # Reward
   reward_weight: 0.0
