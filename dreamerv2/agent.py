@@ -341,7 +341,7 @@ class ActorCritic(common.Module):
     metrics.update(self.critic_opt(critic_tape, critic_loss, self.critic))
     if self._mode == 'explore':
       #metrics.update(**grab_mets1, **mets2, **mets3, **mets4)
-      metrics.update(**grab_mets1, **stacking_mets1, **mets2, **mets3, **mets4)
+      metrics.update(**grab_mets1, **stacking_mets1, **target_pos_mets1, **mets2, **mets3, **mets4)
       # metrics.update(**normal_mets1, **grab_mets1, **stacking_mets1, **combined_mets1, \
       #   **mets2, **mets3, **mets4)
     else:
