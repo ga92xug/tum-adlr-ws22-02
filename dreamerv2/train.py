@@ -261,7 +261,8 @@ def main():
   # test if 1k or 500
   if config.multi_agent:
       train_policy = lambda *args: agnt.policy(
-          *args, mode='explore' if should_expl(step) or ((step / 500) % 2 == 0) else 'train')  
+          *args, mode='explore' if ((step / 500) % 2 == 0) else 'train')  
+          # should_expl(step) or
   else:
       train_policy = lambda *args: agnt.policy(
           *args, mode='explore' if should_expl(step) else 'train')
@@ -305,6 +306,8 @@ def main():
     logger.add(agnt.report(next(eval_dataset)), prefix='eval')
     eval_driver(eval_policy, episodes=config.eval_eps)
     print('Start training.')
+    # counter = 0
+    # while counter < config.eval_every:
     train_driver(train_policy, steps=config.eval_every)
     agnt.save(logdir / 'variables.pkl')
 
