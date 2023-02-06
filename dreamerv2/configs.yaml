@@ -34,6 +34,7 @@ defaults:
   meta_learn_hover: True
   meta_learn_drop: True
   multi_agent: True
+  meta_learn_stacking: True
   only_stacking: False
 
 
