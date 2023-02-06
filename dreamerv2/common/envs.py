@@ -87,7 +87,7 @@ class DMC:
         'lift': common.Activated(), 
         'hover': common.Activated(), 
         'drop': common.Activated(),
-        #'stacking': common.Activated(),
+        'stacking': common.Activated(),
         }
 
     os.environ['MUJOCO_GL'] = 'egl'

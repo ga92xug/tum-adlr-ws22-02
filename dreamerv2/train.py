@@ -172,15 +172,15 @@ def main():
         learning_phase['drop'].activate()
         queue = deque(maxlen=MAX_SIZE)
         print('Activating drop now')
-      '''
-      elif config.meta_learn_stacking and len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['stacking']():
+      
+      elif (config.meta_learn_stacking or config.only_stacking) and len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['stacking']():
         # learned to stack the boxes
         learning_phase['lift'].deactivate()
         learning_phase['stacking'].activate()
         config
         queue = deque(maxlen=MAX_SIZE)
         print('Activating stacking now')
-      '''
+        
 
     # we only want exactly one active learning phase at a time
     count_active_phases = sum([learning_phase[phase]() for phase in ['grab', 'lift', 'hover', 'drop']])
