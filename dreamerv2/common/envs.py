@@ -558,16 +558,11 @@ class DMC:
     box_pos_x = box_pos[:,0]
     
     for i in range(n_boxes):
-        
-        if (box_pos_z[i] > 0.065) and (box_pos_z[i]<0.18) and (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)): # total box height ca. 0.044 -> ca. 0.065 for box stacked on other box
-            # box height higher than before
-            if (box_pos_z[i] > (prev_box_pos_z[i] + box_height_threshold)):
+        # box no contact with finger
+        if (self.check_no_contact(sim=sim, box_name=box_names[i])):
+            # box on target box x pos:
+            if ((abs(box_pos_x[i] - target_pos_x)<0.023)):
                 reward += 1
-            # box no contact with finger
-            if (self.check_no_contact(sim=sim, box_name=box_names[i])):
-                # box on target box x pos:
-                if ((abs(box_pos_x[i] - target_pos_x[j])<0.023):
-                    reward += 1
         
     return reward, box_pos, box_pos_z
 
