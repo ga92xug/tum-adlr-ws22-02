@@ -394,7 +394,8 @@ class DMC:
             con_object2 = con.geom2
             if con_object1 in self.fingertips or con_object2 in self.fingertips:
               return 0
-        return 1
+        else:
+          return 1
 
     return 0
 
