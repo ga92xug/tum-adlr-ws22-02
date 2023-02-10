@@ -78,7 +78,7 @@ class Agent(common.Module):
     stacking_reward = lambda seq: self.wm.heads['stacking_reward'](seq['feat']).mode()
     #target_pos_reward = lambda seq: self.wm.heads['target_pos_reward'](seq['feat']).mode()
     metrics.update(self._task_behavior.train(
-        self.wm, start, data['is_terminal'], reward, grab_reward, stacking_reward, None))
+        self.wm, start, data['is_terminal'], reward, grab_reward, stacking_reward))
     if self.config.expl_behavior != 'greedy':
       mets = self._expl_behavior.train(start, outputs, data)[-1]
       metrics.update({'expl_' + key: value for key, value in mets.items()})
@@ -279,7 +279,7 @@ class ActorCritic(common.Module):
   def set_mode(self, mode):
     self._mode = mode
 
-  def train(self, world_model, start, is_terminal, reward_fn, grab_reward_fn, stacking_reward_fn, target_pos_reward_fn):
+  def train(self, world_model, start, is_terminal, reward_fn, grab_reward_fn, stacking_reward_fn):
     metrics = {}
     hor = self.config.imag_horizon
     # The weights are is_terminal flags for the imagination start states.
