@@ -639,7 +639,7 @@ class DMC:
         'reward': 0.0,
         'grab_reward': 0.0,
         'stacking_reward': 0.0,
-        'target_pos_reward': 0.0,
+        #'target_pos_reward': 0.0,
         'is_first': True,
         'is_last': False,
         'is_terminal': False,
