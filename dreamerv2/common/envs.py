@@ -579,7 +579,7 @@ class DMC:
     contacts = 0
     contact_forces = 0
     stacking_rewards = 0.0
-    target_pos_rewards = 0.0
+    #target_pos_rewards = 0.0
     box_pos_z_mean = 0.0
     box_pos_z_total = []
     
@@ -598,10 +598,10 @@ class DMC:
       #grab_reward = self.calculate_grab_reward()
       stacking_reward, box_pos, box_pos_z = self.calculate_box_pos(previous_timestep_box_pos, prev_ts)
       # target_pos_reward
-      target_pos_reward,_,_ = self.target_box_pos_reward()
+      #target_pos_reward,_,_ = self.target_box_pos_reward()
       grab_rewards += grab_reward
       stacking_rewards += stacking_reward
-      target_pos_rewards += target_pos_reward
+      #target_pos_rewards += target_pos_reward
       contacts += contact
       contact_forces += contact_force
       box_pos_z_mean += np.mean(box_pos_z)

@@ -35,7 +35,7 @@ defaults:
   meta_learn_drop: True
   meta_learn_stacking: True
   only_stacking: False
-  only_target_pos: False
+  #only_target_pos: False
   multi_agent: False
 
 
@@ -62,7 +62,7 @@ defaults:
   reward_head: {layers: 4, units: 400, act: elu, norm: none, dist: mse}
   grab_reward_head: {layers: 4, units: 400, act: elu, norm: none, dist: mse}
   stacking_reward_head: {layers: 4, units: 400, act: elu, norm: none, dist: mse}
-  target_pos_reward_head: {layers: 4, units: 400, act: elu, norm: none, dist: mse}
+  #target_pos_reward_head: {layers: 4, units: 400, act: elu, norm: none, dist: mse}
   discount_head: {layers: 4, units: 400, act: elu, norm: none, dist: binary}
   loss_scales: {kl: 1.0, reward: 1.0, discount: 1.0, proprio: 1.0}
   kl: {free: 0.0, forward: False, balance: 0.8, free_avg: True}
