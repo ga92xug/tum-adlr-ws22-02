@@ -505,18 +505,20 @@ class DMC:
         #print(box_pos_z)
         
         # Stacking reward version 1: 
-        if (box_pos_z[i] > 0.065) and (box_pos_z[i]<0.18) and (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)): # total box height ca. 0.044 -> ca. 0.065 for box stacked on other box
+        if (box_pos_z[i] > 0.065) and (box_pos_z[i]<0.13) and (box_pos_x[i]>(-0.682843+0.3)) and (box_pos_x[i]<(0.682843-0.3)): # total box height ca. 0.044 -> ca. 0.065 for box stacked on other box
             # box height higher than before
+            '''
             if (box_pos_z[i] > (prev_box_pos_z[i] + box_height_threshold)):
                 reward += 1
+            '''
             # box no contact with finger
-            elif (self.check_no_contact(sim=sim, box_name=box_names[i])):
+            if (self.check_no_contact(sim=sim, box_name=box_names[i])):
                 # box above other box given custom range --> falling on other box
                 for j in range(n_boxes):
-                    if (i!=j) and ((abs(box_pos_x[i] - box_pos_x[j])<0.023) and (box_pos_z[i]>box_pos_z[j]+0.04)):
+                    if (i!=j) and ((abs(box_pos_x[i] - box_pos_x[j])<0.023)): #and (box_pos_z[i]>box_pos_z[j]+0.04)):
                         #print("Z-Pos: "+str(box_pos_z[i]) + ',' + str(box_pos_z[j]))
                         #print("X-Pos: "+str(box_pos_x[i]) + ',' + str(box_pos_x[j]))
-                        if (box_pos_z[i]) < prev_box_pos_z[i]: # avoid reward for same position
+                        if (box_pos_z[i] + box_height_threshold) < prev_box_pos_z[i]: # avoid reward for same position
                             reward += 1
             # subtract reward when falling and not above other box
             elif (box_pos_z[i] + box_height_threshold) < prev_box_pos_z[i]:
