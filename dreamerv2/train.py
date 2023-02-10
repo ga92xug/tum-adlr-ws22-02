@@ -152,21 +152,28 @@ def main():
         learning_phase['grab'].activate()
         queue = deque(maxlen=MAX_SIZE)
         print('Activating grab now')
-      elif len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['lift']() \
+      elif len(queue) == MAX_SIZE and np.min(queue) > 100 and not learning_phase['lift']() \
         and not learning_phase['hover']() and not learning_phase['drop']():
         # learned to grab the box
         learning_phase['grab'].deactivate()
         learning_phase['lift'].activate()
         queue = deque(maxlen=MAX_SIZE)
         print('Activating lift now')
-      elif config.meta_learn_hover and len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['hover']() \
+
+        # save pretrained model
+        agnt.save(logdir / 'pretrained_grab_100thres/variables.pkl')
+        with open(pathlib.Path(logdir / 'pretrained_grab_100thres/learn_lift.pkl'), 'wb') as f:
+            pickle.dump((queue, learning_phase), f)
+            print('Saved learn_lift.pkl')
+        
+      elif config.meta_learn_hover and len(queue) == MAX_SIZE and np.min(queue) > 100 and not learning_phase['hover']() \
         and not learning_phase['drop']():
         # learned to lift the box
         learning_phase['lift'].deactivate()
         learning_phase['hover'].activate()
         queue = deque(maxlen=MAX_SIZE)
         print('Activating hover now')
-      elif config.meta_learn_drop and len(queue) == MAX_SIZE and np.min(queue) > 300 and not learning_phase['drop']():
+      elif config.meta_learn_drop and len(queue) == MAX_SIZE and np.min(queue) > 100 and not learning_phase['drop']():
         # learned to hover the box
         learning_phase['hover'].deactivate()
         learning_phase['drop'].activate()
