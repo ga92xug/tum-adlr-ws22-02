@@ -76,9 +76,9 @@ class Agent(common.Module):
     reward = lambda seq: self.wm.heads['reward'](seq['feat']).mode()
     grab_reward = lambda seq: self.wm.heads['grab_reward'](seq['feat']).mode()
     stacking_reward = lambda seq: self.wm.heads['stacking_reward'](seq['feat']).mode()
-    target_pos_reward = lambda seq: self.wm.heads['target_pos_reward'](seq['feat']).mode()
+    #target_pos_reward = lambda seq: self.wm.heads['target_pos_reward'](seq['feat']).mode()
     metrics.update(self._task_behavior.train(
-        self.wm, start, data['is_terminal'], reward, grab_reward, stacking_reward, target_pos_reward))
+        self.wm, start, data['is_terminal'], reward, grab_reward, stacking_reward, None))
     if self.config.expl_behavior != 'greedy':
       mets = self._expl_behavior.train(start, outputs, data)[-1]
       metrics.update({'expl_' + key: value for key, value in mets.items()})
@@ -127,7 +127,7 @@ class WorldModel(common.Module):
     self.heads['reward'] = common.MLP([], **config.reward_head)
     self.heads['grab_reward'] = common.MLP([], **config.grab_reward_head)
     self.heads['stacking_reward'] = common.MLP([], **config.stacking_reward_head)
-    self.heads['target_pos_reward'] = common.MLP([], **config.target_pos_reward_head)
+    #self.heads['target_pos_reward'] = common.MLP([], **config.target_pos_reward_head)
     if config.pred_discount:
       self.heads['discount'] = common.MLP([], **config.discount_head)
     for name in config.grad_heads:
