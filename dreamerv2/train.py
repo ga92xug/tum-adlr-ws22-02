@@ -166,11 +166,6 @@ def main():
             pickle.dump((queue, learning_phase), f)
             print('Saved learn_lift.pkl')
         
-        config = config.update({
-          'grab_reward_weight': 0.2,
-          'stacking_reward_weight': 0.8,
-        })
-        
       elif config.meta_learn_hover and len(queue) == MAX_SIZE and np.min(queue) > 100 and not learning_phase['hover']() \
         and not learning_phase['drop']():
         # learned to lift the box
@@ -296,11 +291,14 @@ def main():
     #print(f'Step {step.value}')
     #print('should_expl', should_expl(step), should_expl._until)
 
-
     [env.set_current_step(step.value) for env in train_envs]
     [env.set_current_step(step.value) for env in eval_envs]
     [env.set_learning_phase(learning_phase) for env in train_envs]
     [env.set_learning_phase(learning_phase) for env in eval_envs]
+
+    if learning_phase['hover']():
+        
+
     if step >= config.start_external_reward and False:
       # linear fade-in from grab to stacking reward
       config = config.update({
