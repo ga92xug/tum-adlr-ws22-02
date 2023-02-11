@@ -31,8 +31,8 @@ defaults:
   jit: True
 
   meta_learn: True
-  meta_learn_hover: True
-  meta_learn_drop: True
+  meta_learn_hover: False
+  meta_learn_drop: False
   multi_agent: False
 
 

@@ -291,16 +291,18 @@ class ActorCritic(common.Module):
         print('agent _mode is explore')
         # compute additional rewards
         grab_reward = grab_reward_fn(seq)
-        # stacking_reward = stacking_reward_fn(seq)
+        stacking_reward = stacking_reward_fn(seq)
+        # todo target position reward 
 
         # norm of individual rewards
         #normal_reward, normal_mets1 = self.rewnorm(reward)
         grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
         # grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
-        # stacking_reward, stacking_mets1 = self.stacking_rewnorm(stacking_reward)
+        stacking_reward, stacking_mets1 = self.stacking_rewnorm(stacking_reward)
         
         # combine rewards and normalize
-        seq['reward'] = grab_reward
+        seq['reward'] = self.config.grab_reward_weight * grab_reward \
+           + self.config.stacking_reward_weight * stacking_reward
         #seq_rewards = self.config.reward_weight * normal_reward \
         #  + self.config.grab_reward_weight * grab_reward \
         #  + self.config.stacking_reward_weight * stacking_reward
@@ -309,7 +311,7 @@ class ActorCritic(common.Module):
         # metrics
         # normal_mets1 = {f'normal_reward_{k}': v for k, v in normal_mets1.items()}
         grab_mets1 = {f'grab_reward_{k}': v for k, v in grab_mets1.items()}
-        # stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
+        stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
         # combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
       elif self._mode == 'train':
         print('agent _mode is train')
@@ -329,7 +331,7 @@ class ActorCritic(common.Module):
     metrics.update(self.actor_opt(actor_tape, actor_loss, self.actor))
     metrics.update(self.critic_opt(critic_tape, critic_loss, self.critic))
     if self._mode == 'explore':
-      metrics.update(**grab_mets1, **mets2, **mets3, **mets4)
+      metrics.update(**grab_mets1, **stacking_mets1, **mets2, **mets3, **mets4)
       # metrics.update(**normal_mets1, **grab_mets1, **stacking_mets1, **combined_mets1, \
       #   **mets2, **mets3, **mets4)
     else:

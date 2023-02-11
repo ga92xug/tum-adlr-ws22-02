@@ -368,6 +368,7 @@ class DMC:
         # learn drop box
         return self.calculate_box2target_reward(drop=True), 0.0, 0.0
     else:
+        print('first learning phase')
         # learn to be close to box
         contacts = self.calculate_grab_reward_contactbased(learn_lift=False)
         output = self.finger_close_reward()
@@ -546,6 +547,29 @@ class DMC:
         
     return reward, box_pos, box_pos_z
 
+  def target_box_pos_reward(self):
+      box_height_threshold = 0.001
+      reward = 0
+      sim = self._env.physics
+      n_boxes = int(self.task.split("_")[1])
+      #print("Box Pos Z Values:")
+      box_names = ['box' + str(b) for b in range(n_boxes)]
+      box_pos = sim.body_2d_pose(box_names)[:,:2]
+      target_pos_x = sim.named.model.body_pos['target', 'x']
+      #print("Target:")
+      #print(target_pos_x)
+      box_pos_z = box_pos[:,1]
+      box_pos_x = box_pos[:,0]
+      
+      for i in range(n_boxes):
+          # box on target box x pos:
+            if ((abs(box_pos_x[i] - target_pos_x)<0.023)):
+                reward = 1
+                # max 1 reward for frame!!!
+                return reward, box_pos, box_pos_z
+          
+      return reward, box_pos, box_pos_z
+
   def step(self, action):
     #print("Current Step: ", self.current_step)
     assert np.isfinite(action['action']).all(), action['action']
@@ -570,7 +594,8 @@ class DMC:
       # # grab_reward, contact, contact_force = self.calculate_contacts(ncon)
       grab_reward, contact, contact_force = self.learn_to_grab_reward(self.current_step)
       #grab_reward = self.calculate_grab_reward()
-      stacking_reward, box_pos, box_pos_z = self.calculate_box_pos(previous_timestep_box_pos, prev_ts)
+      # stacking_reward, box_pos, box_pos_z = self.calculate_box_pos(previous_timestep_box_pos, prev_ts)
+      stacking_reward, box_pos, box_pos_z = self.target_box_pos_reward()
       grab_rewards += grab_reward
       stacking_rewards += stacking_reward
       contacts += contact

@@ -166,6 +166,11 @@ def main():
             pickle.dump((queue, learning_phase), f)
             print('Saved learn_lift.pkl')
         
+        config = config.update({
+          'grab_reward_weight': 0.2,
+          'stacking_reward_weight': 0.8,
+        })
+        
       elif config.meta_learn_hover and len(queue) == MAX_SIZE and np.min(queue) > 100 and not learning_phase['hover']() \
         and not learning_phase['drop']():
         # learned to lift the box
@@ -268,8 +273,7 @@ def main():
   # test if 1k or 500
   if config.multi_agent:
       train_policy = lambda *args: agnt.policy(
-          *args, mode='explore' if ((step.value / 500) % 2 == 0) else 'train')  
-          # should_expl(step) or
+          *args, mode='explore' if should_expl(step) or ((step.value / 500) % 2 == 0) else 'train')  
   else:
       train_policy = lambda *args: agnt.policy(
           *args, mode='explore' if should_expl(step) else 'train')
@@ -291,8 +295,7 @@ def main():
   while step < config.steps:
     #print(f'Step {step.value}')
     #print('should_expl', should_expl(step), should_expl._until)
-    print('Episode 500', (step.value / 500))
-    print('Episode 1000', (step.value / 1000))
+
 
     [env.set_current_step(step.value) for env in train_envs]
     [env.set_current_step(step.value) for env in eval_envs]
@@ -315,7 +318,9 @@ def main():
     print('Start training.')
     # counter = 0
     # while counter < config.eval_every:
-    train_driver(train_policy, steps=config.eval_every)
+    for i in range(10):
+      train_driver(train_policy, steps=config.eval_every / 10)
+    # train_driver(train_policy, steps=config.eval_every)
     agnt.save(logdir / 'variables.pkl')
 
     with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'wb') as f:
