@@ -368,7 +368,6 @@ class DMC:
         # learn drop box
         return self.calculate_box2target_reward(drop=True), 0.0, 0.0
     else:
-        print('first learning phase')
         # learn to be close to box
         contacts = self.calculate_grab_reward_contactbased(learn_lift=False)
         output = self.finger_close_reward()
