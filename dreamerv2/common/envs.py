@@ -345,6 +345,10 @@ class DMC:
             or (thumb_pos_x <= box_pos_x[id] and finger_pos_x >= box_pos_x[id]):
               reward = 1
               return reward, distance_x
+          else:
+              # finger not correct 
+              reward = 0.1
+              return reward, distance_x
 
     return 0.0, np.min(distances_x)
 
