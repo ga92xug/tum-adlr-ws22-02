@@ -51,33 +51,38 @@ def main():
 
   # deque over last 10 episodes(len(episod)=1000)
   MAX_SIZE = 10
+  global learning_phase
   if (logdir / 'learn_lift.pkl').exists():
-      try:
-          # legacy code for loading old pickles
-          # 3 elements
-          with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'rb') as f:
-              queue, should_grab_now, should_lift_now = pickle.load(f)
-              learning_phase = {
-                'grab': common.Activated() if should_lift_now() else should_grab_now,
-                'lift': should_lift_now,
-                'hover': common.Activated(), 
-                'drop': common.Activated()
-              }
-      except:
-          with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'rb') as f:
-              queue, learning_phase = pickle.load(f)
+      with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'rb') as f:
+          pickle_output = pickle.load(f)
+      if len(pickle_output) == 2:
+          queue, learning_phase = pickle_output
+          # legacy support for old pickles
+          if type(learning_phase) == dict:
+              for key, value in learning_phase.items():
+                  if value():
+                      learning_phase = str(key)
+                      break
+                  else:
+                      learning_phase = 'init'
+      elif len(pickle_output) == 3:
+          queue, should_grab_now, should_lift_now = pickle_output
+          if should_lift_now():
+              if should_grab_now():
+                  learning_phase = 'grab'
+              elif should_lift_now():
+                  learning_phase = 'lift'
+              else:
+                  learning_phase = 'init'
+      else:
+          raise ValueError('Invalid pickle output')
+      
       print('Loaded metadata from learn_lift.pkl')
       print('queue', queue)
-      for key, value in learning_phase.items():
-          print(f'learning_phase {key}', value)
+      print('learning_phase', learning_phase)
   else:
       queue = deque(maxlen=MAX_SIZE)
-      learning_phase = {
-        'grab': common.Activated(), 
-        'lift': common.Activated(), 
-        'hover': common.Activated(), 
-        'drop': common.Activated()
-      }
+      learning_phase = 'init'
 
   import tensorflow as tf
   tf.config.experimental_run_functions_eagerly(not config.jit)
@@ -135,55 +140,42 @@ def main():
     return env
 
   def per_episode(ep, mode, queue=None):
+    global learning_phase
     length = len(ep['reward']) - 1
     score = float(ep['reward'].astype(np.float64).sum())
     grab_reward = float(ep['grab_reward'].astype(np.float64).sum())
 
     if mode == 'train' and config.meta_learn:
       print('\n')
-      print('Last grab rewards', list(queue))
-      for key, value in learning_phase.items():
-          if value():
-            print(f'learning_phase {key}', value)
       queue.append(grab_reward)
-      if len(queue) == MAX_SIZE and np.min(queue) > 100 and not learning_phase['grab']() \
-        and not learning_phase['lift']() and not learning_phase['hover']() and not learning_phase['drop']():
-        # learned to be close to the box
-        learning_phase['grab'].activate()
-        queue = deque(maxlen=MAX_SIZE)
-        print('Activating grab now')
-      elif len(queue) == MAX_SIZE and np.min(queue) > 100 and not learning_phase['lift']() \
-        and not learning_phase['hover']() and not learning_phase['drop']():
-        # learned to grab the box
-        learning_phase['grab'].deactivate()
-        learning_phase['lift'].activate()
-        queue = deque(maxlen=MAX_SIZE)
-        print('Activating lift now')
-
-        # save pretrained model
-        agnt.save(logdir / 'pretrained_grab_100thres/variables.pkl')
-        with open(pathlib.Path(logdir / 'pretrained_grab_100thres/learn_lift.pkl'), 'wb') as f:
-            pickle.dump((queue, learning_phase), f)
-            print('Saved learn_lift.pkl')
-        
-      elif config.meta_learn_hover and len(queue) == MAX_SIZE and np.min(queue) > 100 and not learning_phase['hover']() \
-        and not learning_phase['drop']():
-        # learned to lift the box
-        learning_phase['lift'].deactivate()
-        learning_phase['hover'].activate()
-        queue = deque(maxlen=MAX_SIZE)
-        print('Activating hover now')
-      elif config.meta_learn_drop and len(queue) == MAX_SIZE and np.min(queue) > 100 and not learning_phase['drop']():
-        # learned to hover the box
-        learning_phase['hover'].deactivate()
-        learning_phase['drop'].activate()
-        queue = deque(maxlen=MAX_SIZE)
-        print('Activating drop now')
-
-    # we only want exactly one active learning phase at a time
-    count_active_phases = sum([learning_phase[phase]() for phase in ['grab', 'lift', 'hover', 'drop']])
-    if count_active_phases > 1:
-        raise Exception(f'There are {count_active_phases} active phases, but there should be max one.')
+      print('Last grab rewards', list(queue))
+      print('learning_phase', learning_phase)
+      if len(queue) == MAX_SIZE:
+        if learning_phase == 'init' and np.min(queue) > 100:
+          learning_phase = 'close'
+          queue = deque(maxlen=MAX_SIZE)
+          print('Activating grab now')
+        elif learning_phase == 'close' and np.min(queue) > 100:
+          learning_phase = 'grab'
+          queue = deque(maxlen=MAX_SIZE)
+          print('Activating grab now')
+        elif learning_phase == 'grab' and np.min(queue) > 100:
+          learning_phase = 'lift'
+          queue = deque(maxlen=MAX_SIZE)
+          print('Activating lift now')
+        elif config.meta_learn_hover and learning_phase == 'lift' and np.min(queue) > 100:
+          learning_phase = 'hover'
+          queue = deque(maxlen=MAX_SIZE)
+          print('Activating hover now')
+          # save pretrained model
+          agnt.save(logdir / 'pretrained_grab_100thres/variables.pkl')
+          with open(pathlib.Path(logdir / 'pretrained_grab_100thres/learn_lift.pkl'), 'wb') as f:
+              pickle.dump((queue, learning_phase), f)
+              print('Saved learn_lift.pkl')
+        elif config.meta_learn_drop and learning_phase == 'hover' and np.min(queue) > 100:
+          learning_phase = 'drop'
+          queue = deque(maxlen=MAX_SIZE)
+          print('Activating drop now')
 
     stacking_reward = float(ep['stacking_reward'].astype(np.float64).sum())
     # contacts
@@ -296,8 +288,11 @@ def main():
     [env.set_learning_phase(learning_phase) for env in train_envs]
     [env.set_learning_phase(learning_phase) for env in eval_envs]
 
-    if learning_phase['hover']():
-        
+    if learning_phase == 'hover':
+        config = config.update({
+          'grab_reward_weight': 0.2,
+          'stacking_reward_weight': 0.8,
+        })
 
     if step >= config.start_external_reward and False:
       # linear fade-in from grab to stacking reward
@@ -316,11 +311,10 @@ def main():
     print('Start training.')
     # counter = 0
     # while counter < config.eval_every:
-    for i in range(10):
-      train_driver(train_policy, steps=config.eval_every / 10)
-    # train_driver(train_policy, steps=config.eval_every)
+    #for i in range(10):
+    #  train_driver(train_policy, steps=config.eval_every / 10)
+    train_driver(train_policy, steps=config.eval_every)
     agnt.save(logdir / 'variables.pkl')
-
     with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'wb') as f:
         pickle.dump((queue, learning_phase), f)
         print('Saved learn_lift.pkl')

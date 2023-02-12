@@ -82,12 +82,7 @@ class DMC:
     self.fingertips = [13,14,17,18]
     self.boxes = [19,20,21,21]
     self.current_step = 0
-    self.learning_phase = {
-        'grab': common.Activated(), 
-        'lift': common.Activated(), 
-        'hover': common.Activated(), 
-        'drop': common.Activated()
-        }
+    self.learning_phase = 'init'
 
     os.environ['MUJOCO_GL'] = 'egl'
     self.interesting_geom = [13,14,17,18]
@@ -315,8 +310,7 @@ class DMC:
 
     return reward, contacts, contact_forces
 
-  def finger_close_reward(self):
-    _CLOSE = .02    # (Meters) Distance below which a thing is considered close.
+  def finger_close_reward(self, close=.02, not_left_and_right=False):
     sim = self._env.physics
     n_boxes = int(self.task.split("_")[1])
     box_names = ['box' + str(b) for b in range(n_boxes)]
@@ -339,39 +333,42 @@ class DMC:
       distances_x.append(distance_x)
     
       # pinch close to box and hand above box
-      if sim.site_distance('pinch', box1) < _CLOSE and distance_x < 0.022:
+      if sim.site_distance('pinch', box1) < close and distance_x < close:
           # finger to either side of box 
-          if (thumb_pos_x >= box_pos_x[id] and finger_pos_x <= box_pos_x[id]) \
-            or (thumb_pos_x <= box_pos_x[id] and finger_pos_x >= box_pos_x[id]):
+          if not_left_and_right or ((thumb_pos_x >= box_pos_x[id] and finger_pos_x <= box_pos_x[id]) \
+            or (thumb_pos_x <= box_pos_x[id] and finger_pos_x >= box_pos_x[id])):
               reward = 1
-              return reward, distance_x
-          else:
-              # finger not correct 
-              reward = 0.1
               return reward, distance_x
 
     return 0.0, np.min(distances_x)
 
 
   def learn_to_grab_reward(self, current_step):
-    #print(self.learning_phase['grab'], type(self.learning_phase['grab']))
-    if self.learning_phase['grab']():
-        # learn contact with box
-        return self.calculate_grab_reward_contactbased(learn_lift=False)
-    elif self.learning_phase['lift']():
-        # learn lift box
-        return self.calculate_grab_reward_contactbased(learn_lift=True)
-    elif self.learning_phase['hover']():
-        # learn hover box
-        return self.calculate_box2target_reward(drop=False), 0.0, 0.0
-    elif self.learning_phase['drop']():
-        # learn drop box
-        return self.calculate_box2target_reward(drop=True), 0.0, 0.0
-    else:
+    if self.learning_phase == 'init':
+        # learn to be close to box
+        contacts = self.calculate_grab_reward_contactbased(learn_lift=False)
+        output = self.finger_close_reward(close=.03, not_left_and_right=True)
+        return (output[0], contacts[1], output[1])
+    elif self.learning_phase == 'close':
         # learn to be close to box
         contacts = self.calculate_grab_reward_contactbased(learn_lift=False)
         output = self.finger_close_reward()
         return (output[0], contacts[1], output[1])
+    elif self.learning_phase == 'grab':
+        # learn contact with box
+        return self.calculate_grab_reward_contactbased(learn_lift=False)
+    elif self.learning_phase == 'lift':
+        # learn lift box
+        return self.calculate_grab_reward_contactbased(learn_lift=True)
+    elif self.learning_phase == 'hover':
+        return self.calculate_grab_reward_contactbased(learn_lift=True)
+        # learn hover box
+        # return self.calculate_box2target_reward(drop=False), 0.0, 0.0
+    elif self.learning_phase == 'drop':
+        # learn drop box
+        return self.calculate_box2target_reward(drop=True), 0.0, 0.0
+    else:
+        raise ValueError('Unknown learning phase: {}'.format(self.learning_phase))
     
 
   def calculate_box2target_reward(self, drop=False):

@@ -301,6 +301,7 @@ class ActorCritic(common.Module):
         stacking_reward, stacking_mets1 = self.stacking_rewnorm(stacking_reward)
         
         # combine rewards and normalize
+        print('grab reward weight', self.config.grab_reward_weight, 'stacking reward weight', self.config.stacking_reward_weight)
         seq['reward'] = self.config.grab_reward_weight * grab_reward \
            + self.config.stacking_reward_weight * stacking_reward
         #seq_rewards = self.config.reward_weight * normal_reward \
