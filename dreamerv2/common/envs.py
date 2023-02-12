@@ -560,12 +560,12 @@ class DMC:
     
     for i in range(n_boxes):
         # box no contact with finger
-        if (self.check_no_contact(sim=sim, box_name=box_names[i])):
-            # box on target box x pos:
-            if ((abs(box_pos_x[i] - target_pos_x)<0.023)):
-                reward += 1
-                # max 1 reward for frame!!!
-                return reward, box_pos, box_pos_z
+        #if (self.check_no_contact(sim=sim, box_name=box_names[i])):
+        # box on target box x pos:
+        if ((abs(box_pos_x[i] - target_pos_x)<0.023)):
+            reward += 1
+            # max 1 reward for frame!!!
+            #return reward, box_pos, box_pos_z
         
     return reward, box_pos, box_pos_z
 
