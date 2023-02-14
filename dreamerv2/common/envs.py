@@ -624,7 +624,7 @@ class DMC:
       stacking_reward, box_pos, box_pos_z = self.calculate_box_pos(previous_timestep_box_pos, prev_ts)
       # target_pos_reward
       #target_pos_reward,_,_ = self.target_box_pos_sparse_reward()
-      target_pos_reward,_,_ = self.target_box_pos_dense_reward(only_x=True)
+      target_pos_reward,_,_ = self.target_box_pos_dense_reward(only_x=False)
       grab_rewards += grab_reward
       stacking_rewards += stacking_reward
       target_pos_rewards += target_pos_reward
