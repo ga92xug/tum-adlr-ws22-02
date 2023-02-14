@@ -570,7 +570,7 @@ class DMC:
     return reward, box_pos, box_pos_z
 
   def target_box_pos_dense_reward(self, only_x=False):
-    distance_threshold = 0.45
+    distance_threshold = 0.35
     reward = 0
     sim = self._env.physics
     n_boxes = int(self.task.split("_")[1])
@@ -593,9 +593,7 @@ class DMC:
             distance = sim.site_distance('box'+str(i), 'target')
         if distance<distance_threshold:
             reward += ((distance_threshold-distance)/distance_threshold)**2
-        print(distance)
-        print(reward)
-    print(only_x)
+
     return reward, box_pos, box_pos_z
 
   def step(self, action):
