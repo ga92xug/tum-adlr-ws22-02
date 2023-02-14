@@ -163,7 +163,7 @@ def main():
           learning_phase = 'lift'
           queue = deque(maxlen=MAX_SIZE)
           print('Activating lift now')
-        elif config.meta_learn_hover and learning_phase == 'lift' and np.average(queue) > 300:
+        elif config.meta_learn_hover and learning_phase == 'lift' and np.min(queue) > 100:
           learning_phase = 'hover'
           queue = deque(maxlen=MAX_SIZE)
           print('Activating hover now')
