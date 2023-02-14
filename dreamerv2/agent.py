@@ -288,7 +288,6 @@ class ActorCritic(common.Module):
       seq = world_model.imagine(self.actor, start, is_terminal, hor)
       reward = reward_fn(seq)
       if self._mode == 'explore':
-        print('agent _mode is explore')
         # compute additional rewards
         grab_reward = grab_reward_fn(seq)
         stacking_reward = stacking_reward_fn(seq)
@@ -301,7 +300,6 @@ class ActorCritic(common.Module):
         stacking_reward, stacking_mets1 = self.stacking_rewnorm(stacking_reward)
         
         # combine rewards and normalize
-        print('grab reward weight', self.config.grab_reward_weight, 'stacking reward weight', self.config.stacking_reward_weight)
         seq['reward'] = self.config.grab_reward_weight * grab_reward \
            + self.config.stacking_reward_weight * stacking_reward
         #seq_rewards = self.config.reward_weight * normal_reward \
@@ -315,12 +313,10 @@ class ActorCritic(common.Module):
         stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
         # combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
       elif self._mode == 'train':
-        print('agent _mode is train')
         # train
         seq['reward'], mets1 = self.rewnorm(reward)
         mets1 = {f'reward_{k}': v for k, v in mets1.items()}
       else:
-        print('agent _mode is eval')
         # eval
         seq['reward'], mets1 = self.rewnorm(reward)
         mets1 = {f'reward_{k}': v for k, v in mets1.items()}

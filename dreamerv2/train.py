@@ -51,7 +51,7 @@ def main():
 
   # deque over last 10 episodes(len(episod)=1000)
   MAX_SIZE = 10
-  global learning_phase
+  global queue, learning_phase
   if (logdir / 'learn_lift.pkl').exists():
       with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'rb') as f:
           pickle_output = pickle.load(f)
@@ -139,8 +139,8 @@ def main():
     env = common.TimeLimit(env, config.time_limit)
     return env
 
-  def per_episode(ep, mode, queue=None):
-    global learning_phase
+  def per_episode(ep, mode):
+    global queue, learning_phase
     length = len(ep['reward']) - 1
     score = float(ep['reward'].astype(np.float64).sum())
     grab_reward = float(ep['grab_reward'].astype(np.float64).sum())
@@ -151,28 +151,32 @@ def main():
       print('Last grab rewards', list(queue))
       print('learning_phase', learning_phase)
       if len(queue) == MAX_SIZE:
-        if learning_phase == 'init' and np.min(queue) > 100:
+        if learning_phase == 'init' and np.average(queue) > 300:
           learning_phase = 'close'
           queue = deque(maxlen=MAX_SIZE)
           print('Activating grab now')
-        elif learning_phase == 'close' and np.min(queue) > 100:
+        elif learning_phase == 'close' and np.average(queue) > 300:
           learning_phase = 'grab'
           queue = deque(maxlen=MAX_SIZE)
           print('Activating grab now')
-        elif learning_phase == 'grab' and np.min(queue) > 100:
+        elif learning_phase == 'grab' and np.average(queue) > 300:
           learning_phase = 'lift'
           queue = deque(maxlen=MAX_SIZE)
           print('Activating lift now')
-        elif config.meta_learn_hover and learning_phase == 'lift' and np.min(queue) > 100:
+        elif config.meta_learn_hover and learning_phase == 'lift' and np.average(queue) > 300:
           learning_phase = 'hover'
           queue = deque(maxlen=MAX_SIZE)
           print('Activating hover now')
           # save pretrained model
-          agnt.save(logdir / 'pretrained_grab_100thres/variables.pkl')
-          with open(pathlib.Path(logdir / 'pretrained_grab_100thres/learn_lift.pkl'), 'wb') as f:
+          logdir = pathlib.Path(config.logdir).expanduser()
+          # easier download from gcloud
+          logdir_pretrained = pathlib.Path(config.logdir + "/pretrained_grab_100thres").expanduser()
+          logdir_pretrained.mkdir(parents=True, exist_ok=True)
+          agnt.save(logdir_pretrained / 'variables.pkl')
+          with open(pathlib.Path(logdir_pretrained / 'learn_lift.pkl'), 'wb') as f:
               pickle.dump((queue, learning_phase), f)
               print('Saved learn_lift.pkl')
-        elif config.meta_learn_drop and learning_phase == 'hover' and np.min(queue) > 100:
+        elif config.meta_learn_drop and learning_phase == 'hover' and np.average(queue) > 300:
           learning_phase = 'drop'
           queue = deque(maxlen=MAX_SIZE)
           print('Activating drop now')
@@ -226,7 +230,7 @@ def main():
   act_space = train_envs[0].act_space
   obs_space = train_envs[0].obs_space
   train_driver = common.Driver(train_envs)
-  train_driver.on_episode(lambda ep: per_episode(ep, mode='train', queue=queue))
+  train_driver.on_episode(lambda ep: per_episode(ep, mode='train'))
   train_driver.on_step(lambda tran, worker: step.increment())
   train_driver.on_step(train_replay.add_step)
   train_driver.on_reset(train_replay.add_step)
@@ -309,10 +313,10 @@ def main():
     logger.add(agnt.report(next(eval_dataset)), prefix='eval')
     eval_driver(eval_policy, episodes=config.eval_eps)
     print('Start training.')
-    # counter = 0
-    # while counter < config.eval_every:
     #for i in range(10):
-    #  train_driver(train_policy, steps=config.eval_every / 10)
+    #  print('Train driver', i)
+    #  print('queue', queue, 'learning_phase', learning_phase)
+    #  train_driver(train_policy, steps=config.eval_every)
     train_driver(train_policy, steps=config.eval_every)
     agnt.save(logdir / 'variables.pkl')
     with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'wb') as f:
