@@ -592,7 +592,7 @@ class DMC:
         else:
             distance = sim.site_distance('box'+str(i), 'target')
         if distance<distance_threshold:
-            reward += ((distance_threshold-distance)/distance_threshold)#**2
+            reward += ((distance_threshold-distance)/distance_threshold)**2
 
     return reward, box_pos, box_pos_z
 
