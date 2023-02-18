@@ -291,7 +291,6 @@ class ActorCritic(common.Module):
       seq = world_model.imagine(self.actor, start, is_terminal, hor)
       reward = reward_fn(seq)
       if self._mode == 'explore':
-        print('agent _mode is explore')
         # compute additional rewards
         grab_reward = grab_reward_fn(seq)
         stacking_reward = stacking_reward_fn(seq)
@@ -309,26 +308,24 @@ class ActorCritic(common.Module):
             seq['reward'] = stacking_reward
         elif self.config.only_target_pos:
             seq['reward'] = target_pos_reward
+            # combine rewards and normalize
+        elif self.config.grab+target_pos:
+            seq['reward'] = self.config.grab_reward_weight * grab_reward \
+                + self.config.stacking_reward_weight * stacking_reward
         else:
             seq['reward'] = grab_reward
-        #seq_rewards = self.config.reward_weight * normal_reward \
-        #  + self.config.grab_reward_weight * grab_reward \
-        #  + self.config.stacking_reward_weight * stacking_reward
-        #seq['reward'], combiner_mets1 = self.combiner_rewnorm(seq_rewards)
         
         # metrics
         # normal_mets1 = {f'normal_reward_{k}': v for k, v in normal_mets1.items()}
         grab_mets1 = {f'grab_reward_{k}': v for k, v in grab_mets1.items()}
         stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
-        target_pos_mets1 = {f'target_pos_reward_{k}': v for k, v in target_pos_mets1.items()}
+        target_pos_mets1 = {f'target_pos_reward_{k}': v for k, v in target_pos_mets1.items()}c
         # combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
       elif self._mode == 'train':
-        print('agent _mode is train')
         # train
         seq['reward'], mets1 = self.rewnorm(reward)
         mets1 = {f'reward_{k}': v for k, v in mets1.items()}
       else:
-        print('agent _mode is eval')
         # eval
         seq['reward'], mets1 = self.rewnorm(reward)
         mets1 = {f'reward_{k}': v for k, v in mets1.items()}
@@ -342,8 +339,7 @@ class ActorCritic(common.Module):
     if self._mode == 'explore':
       #metrics.update(**grab_mets1, **mets2, **mets3, **mets4)
       metrics.update(**grab_mets1, **stacking_mets1, **target_pos_mets1, **mets2, **mets3, **mets4)
-      # metrics.update(**normal_mets1, **grab_mets1, **stacking_mets1, **combined_mets1, \
-      #   **mets2, **mets3, **mets4)
+
     else:
       metrics.update(**mets1, **mets2, **mets3, **mets4)
     self.update_slow_target()  # Variables exist after first forward pass.
