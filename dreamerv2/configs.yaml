@@ -36,7 +36,7 @@ defaults:
   only_stacking: False
   only_target_pos: False
   multi_agent: False
-  grab+target_pos: False
+  grab_target_pos: False
 
 
   # Reward

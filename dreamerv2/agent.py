@@ -309,9 +309,9 @@ class ActorCritic(common.Module):
         elif self.config.only_target_pos:
             seq['reward'] = target_pos_reward
             # combine rewards and normalize
-        elif self.config.grab+target_pos:
+        elif self.config.grab_target_pos:
             seq['reward'] = self.config.grab_reward_weight * grab_reward \
-                + self.config.stacking_reward_weight * stacking_reward
+                + self.config.target_pos_reward_weight * target_pos_reward
         else:
             seq['reward'] = grab_reward
         
@@ -319,7 +319,7 @@ class ActorCritic(common.Module):
         # normal_mets1 = {f'normal_reward_{k}': v for k, v in normal_mets1.items()}
         grab_mets1 = {f'grab_reward_{k}': v for k, v in grab_mets1.items()}
         stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
-        target_pos_mets1 = {f'target_pos_reward_{k}': v for k, v in target_pos_mets1.items()}c
+        target_pos_mets1 = {f'target_pos_reward_{k}': v for k, v in target_pos_mets1.items()}
         # combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
       elif self._mode == 'train':
         # train
