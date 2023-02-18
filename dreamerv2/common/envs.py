@@ -570,8 +570,11 @@ class DMC:
         
     return reward, box_pos, box_pos_z
 
-  def target_box_pos_dense_reward(self, only_x=False):
+  def target_box_pos_dense_reward(self, only_x=True, field_method=True):
     distance_threshold = 0.35
+    distance_field_1 = 0.08
+    distance_field_2 = 0.175
+    distance_field_3 = 0.35
     reward = 0
     sim = self._env.physics
     n_boxes = int(self.task.split("_")[1])
@@ -592,9 +595,22 @@ class DMC:
             distance = abs(target_pos_x-box_pos_x[i])
         else:
             distance = sim.site_distance('box'+str(i), 'target')
-        if distance<distance_threshold:
+        if field_method:
+            if distance<distance_field_1:
+                reward += (0.5 + ((distance_field_1-distance)/(2*distance_field_1)))
+            elif distance<distance_field_2:
+                reward += (0.0 + (((distance_field_2-distance)*0.92)/distance_field_2))
+            elif distance<distance_field_3:
+                reward += (-0.5 + ((distance_field_3-distance)/distance_field_3))
+            else:
+                reward -= (0.15 + distance)
+            
+        elif distance<distance_threshold:
             reward += ((distance_threshold-distance)/distance_threshold)**2
-
+            
+    # Norm reward by boxes:
+    reward = reward/n_boxes
+    
     return reward, box_pos, box_pos_z
 
   def step(self, action):
@@ -625,7 +641,7 @@ class DMC:
       stacking_reward, box_pos, box_pos_z = self.calculate_box_pos(previous_timestep_box_pos, prev_ts)
       # target_pos_reward
       #target_pos_reward,_,_ = self.target_box_pos_sparse_reward()
-      target_pos_reward,_,_ = self.target_box_pos_dense_reward(only_x=True)
+      target_pos_reward,_,_ = self.target_box_pos_dense_reward(only_x=True, field_method=True)
 
       grab_rewards += grab_reward
       stacking_rewards += stacking_reward
