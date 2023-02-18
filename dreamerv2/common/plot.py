@@ -264,6 +264,7 @@ def plot(task, ax, runs, methods, args):
         print(f'Skipping empty: {task} {method}')
         continue
       xlim = [min(xlim[0], np.nanmin(xs)), max(xlim[1], np.nanmax(xs))]
+      print('xlim', xlim)
   ax.ticklabel_format(axis='x', style='sci', scilimits=(0, 0))
   steps = [1, 2, 2.5, 5, 10]
   ax.xaxis.set_major_locator(ticker.MaxNLocator(args.xticks, steps=steps))

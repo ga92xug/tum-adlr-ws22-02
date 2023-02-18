@@ -52,6 +52,7 @@ def main():
   # deque over last 10 episodes(len(episod)=1000)
   MAX_SIZE = 10
   global queue, learning_phase
+  change_config = common.Once()
   if (logdir / 'learn_lift.pkl').exists():
       with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'rb') as f:
           pickle_output = pickle.load(f)
@@ -292,11 +293,13 @@ def main():
     [env.set_learning_phase(learning_phase) for env in train_envs]
     [env.set_learning_phase(learning_phase) for env in eval_envs]
 
-    if learning_phase == 'hover':
+    if learning_phase == 'hover' and change_config():
         config = config.update({
           'grab_reward_weight': 0.2,
           'stacking_reward_weight': 0.8,
         })
+        print('grab_reward_weight:', config.grab_reward_weight, 'stacking_reward_weight', config.stacking_reward_weight)
+
 
     if step >= config.start_external_reward and False:
       # linear fade-in from grab to stacking reward

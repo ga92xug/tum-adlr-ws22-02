@@ -543,28 +543,58 @@ class DMC:
         
     return reward, box_pos, box_pos_z
 
-  def target_box_pos_reward(self):
-      box_height_threshold = 0.001
-      reward = 0
-      sim = self._env.physics
-      n_boxes = int(self.task.split("_")[1])
-      #print("Box Pos Z Values:")
-      box_names = ['box' + str(b) for b in range(n_boxes)]
-      box_pos = sim.body_2d_pose(box_names)[:,:2]
-      target_pos_x = sim.named.model.body_pos['target', 'x']
-      #print("Target:")
-      #print(target_pos_x)
-      box_pos_z = box_pos[:,1]
-      box_pos_x = box_pos[:,0]
+
+  def target_box_pos_sparse_reward(self):
+    box_height_threshold = 0.001
+    reward = 0
+    sim = self._env.physics
+    n_boxes = int(self.task.split("_")[1])
+    #print("Box Pos Z Values:")
+    box_names = ['box' + str(b) for b in range(n_boxes)]
+    box_pos = sim.body_2d_pose(box_names)[:,:2]
+    target_pos_x = sim.named.model.body_pos['target', 'x']
+    #print("Target:")
+    #print(target_pos_x)
+    box_pos_z = box_pos[:,1]
+    box_pos_x = box_pos[:,0]
+    
+    for i in range(n_boxes):
+        # box no contact with finger
+        #if (self.check_no_contact(sim=sim, box_name=box_names[i])):
+        # box on target box x pos:
+        if ((abs(box_pos_x[i] - target_pos_x)<0.023)):
+            reward += 1
+            # max 1 reward for frame!!!
+            #return reward, box_pos, box_pos_z
+        
+    return reward, box_pos, box_pos_z
+
+  def target_box_pos_dense_reward(self, only_x=False):
+    distance_threshold = 0.35
+    reward = 0
+    sim = self._env.physics
+    n_boxes = int(self.task.split("_")[1])
+    #print("Box Pos Z Values:")
+    box_names = ['box' + str(b) for b in range(n_boxes)]
+    box_pos = sim.body_2d_pose(box_names)[:,:2]
+    target_pos_x = sim.named.model.body_pos['target', 'x']
+    #print("Target:")
+    #print(target_pos_x)     
+    box_pos_z = box_pos[:,1]
+    box_pos_x = box_pos[:,0]
       
-      for i in range(n_boxes):
-          # box on target box x pos:
-            if ((abs(box_pos_x[i] - target_pos_x)<0.023)):
-                reward = 1
-                # max 1 reward for frame!!!
-                return reward, box_pos, box_pos_z
-          
-      return reward, box_pos, box_pos_z
+    for i in range(n_boxes):
+        # box no contact with finger
+        #if (self.check_no_contact(sim=sim, box_name=box_names[i])):
+        # reward distance to target box:
+        if only_x:
+            distance = abs(target_pos_x-box_pos_x[i])
+        else:
+            distance = sim.site_distance('box'+str(i), 'target')
+        if distance<distance_threshold:
+            reward += ((distance_threshold-distance)/distance_threshold)#**2
+
+    return reward, box_pos, box_pos_z
 
   def step(self, action):
     #print("Current Step: ", self.current_step)
@@ -591,13 +621,14 @@ class DMC:
       grab_reward, contact, contact_force = self.learn_to_grab_reward(self.current_step)
       #grab_reward = self.calculate_grab_reward()
       # stacking_reward, box_pos, box_pos_z = self.calculate_box_pos(previous_timestep_box_pos, prev_ts)
-      stacking_reward, box_pos, box_pos_z = self.target_box_pos_reward()
+      # stacking_reward, box_pos, box_pos_z = self.target_box_pos_reward_dense()
+      stacking_reward,_,_ = self.target_box_pos_dense_reward(only_x=True)
       grab_rewards += grab_reward
       stacking_rewards += stacking_reward
       contacts += contact
       contact_forces += contact_force
-      box_pos_z_mean += np.mean(box_pos_z)
-      box_pos_z_total.append(box_pos_z)
+      #box_pos_z_mean += np.mean(box_pos_z)
+      #box_pos_z_total.append(box_pos_z)
       
           
       if time_step.last():

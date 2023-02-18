@@ -158,7 +158,7 @@ dmc_proprio:
   encoder: {mlp_keys: '.*', cnn_keys: '$^'}
   decoder: {mlp_keys: '.*', cnn_keys: '$^'}
   action_repeat: 2
-  eval_every: 1e4
+  eval_every: 5e4
   prefill: 1000
   pretrain: 100
   clip_rewards: identity
