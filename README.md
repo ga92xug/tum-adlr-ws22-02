@@ -21,10 +21,10 @@ For the setup and dataset preparation please check the DreamerV2 [github page](h
 - Proprioceptive information: we added sensory information for the fingers to the model input.
 - Intrinsic motivation: by using some environment specific clues we introduce a much richer exploration signal that should help the agent to explore the environment more efficiently and to built a better world model. For that we introduce the biologically inspired Learn2Grab and Stacking reward.
 
-Learn2Grab results:
-<img src="report/images/learn2grab_ablation_study_with_proprio.png" height="200px"/> <img src="report/images/contacts.png" height="200px"/>
+### Learn2Grab results:
+<p align="center"> <img src="report/images/learn2grab_ablation_study_with_proprio.png" height="200px"/> <img src="report/images/contacts.png" height="200px"/> </p>
 
-Task performance:
+### Task performance:
 <p align="center"><img src="report/images/results.png" height="200px"/></p>
 
 
