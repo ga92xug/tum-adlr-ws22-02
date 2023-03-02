@@ -1,5 +1,5 @@
 # Learning world models by self-supervised exploration (tum-adlr-ws22-02)
-<p align="center"><img src="report/gifs/learn2grab_without_drop.gif" width="400px"/></p>
+<p align="center"><img src="report/gifs/learn2grab_without_drop.gif" width="250px"/></p>
 This project introduces an adapted version of Plan2Explore, where an agent builds a world model trained in a self-supervised manner.
 
 ## todo
@@ -28,7 +28,7 @@ For the setup and dataset preparation please check the DreamerV2 [github page](h
 <p align="center"><img src="report/images/results.png" height="200px"/></p>
 
 ## Fails
-
+<p align="center"> <img src="report/gifs/fail1.gif" height="200px"/> <img src="report/gifs/fail2.gif" height="200px"/> <img src="report/gifs/fail3.gif" height="200px"/> </p>
 
 
 
