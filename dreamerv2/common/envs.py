@@ -620,9 +620,9 @@ class DMC:
       # # grab_reward, contact, contact_force = self.calculate_contacts(ncon)
       grab_reward, contact, contact_force = self.learn_to_grab_reward(self.current_step)
       #grab_reward = self.calculate_grab_reward()
-      # stacking_reward, box_pos, box_pos_z = self.calculate_box_pos(previous_timestep_box_pos, prev_ts)
+      stacking_reward, box_pos, box_pos_z = self.calculate_box_pos(previous_timestep_box_pos, prev_ts)
       # stacking_reward, box_pos, box_pos_z = self.target_box_pos_reward_dense()
-      stacking_reward,_,_ = self.target_box_pos_dense_reward(only_x=True)
+      #stacking_reward,_,_ = self.target_box_pos_dense_reward(only_x=True)
       grab_rewards += grab_reward
       stacking_rewards += stacking_reward
       contacts += contact

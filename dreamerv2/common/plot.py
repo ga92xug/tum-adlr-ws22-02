@@ -111,6 +111,7 @@ def load_run(filename, indir, args):
   if args.xmult != 1:
     xs = xs.astype(np.float32) * args.xmult
   ys = df[args.yaxis].to_numpy()
+  print('ys', ys.shape)
   bins = {
       'atari': 1e6,
       'dmc': 1e4,
@@ -118,7 +119,9 @@ def load_run(filename, indir, args):
   }.get(task.split('_')[0], 1e5) if args.bins == -1 else args.bins
   if bins:
     borders = np.arange(0, xs.max() + 1e-8, bins)
+    print('borders', borders.shape)
     xs, ys = bin_scores(xs, ys, borders)
+    print('ys', ys.shape)
   if not len(xs):
     print('Skipping empty run', task, method, seed)
     return
@@ -249,6 +252,7 @@ def plot(task, ax, runs, methods, args):
     title = task.title()
   ax.set_title(title)
   xlim = [+np.inf, -np.inf]
+  print('methods', methods)
   for index, method in enumerate(methods):
     relevant = [r for r in runs if r.method == method]
     if not relevant:
@@ -486,6 +490,7 @@ def main(args):
   baselines = load_baselines(args.baselines, args.prefix)
   stats(runs, baselines)
   methods = order_methods(runs, baselines, args)
+  methods = ['vision+touch', 'proprio', 'vision', 'vision+proprio']
   if not runs:
     print('Noting to plot.')
     return
