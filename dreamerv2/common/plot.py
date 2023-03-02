@@ -9,6 +9,7 @@ import pathlib
 import re
 import subprocess
 import warnings
+import sys
 
 os.environ['NO_AT_BRIDGE'] = '1'  # Hide X org false warning.
 
@@ -179,6 +180,7 @@ def figure(runs, methods, args):
   rows = int(np.ceil((len(tasks) + len(args.add)) / args.cols))
   figsize = args.size[0] * args.cols, args.size[1] * rows
   fig, axes = plt.subplots(rows, args.cols, figsize=figsize, squeeze=False)
+
   for task, ax in zip(tasks, axes.flatten()):
     relevant = [r for r in runs if r.task == task]
     plot(task, ax, relevant, methods, args)

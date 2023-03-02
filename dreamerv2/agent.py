@@ -23,13 +23,11 @@ class Agent(common.Module):
       self._expl_behavior = getattr(expl, config.expl_behavior)(
           self.config, self.act_space, self.wm, self.tfstep,
           lambda seq: self.wm.heads['reward'](seq['feat']).mode())
-          #lambda seq: self.wm.heads['grab_reward'](seq['feat']).mode())
     self._expl_behavior.set_mode('explore')
     
 
   @tf.function
   def policy(self, obs, state=None, mode='train'):
-    # print('policy')
     obs = tf.nest.map_structure(tf.tensor, obs)
     tf.py_function(lambda: self.tfstep.assign(
         int(self.step), read_value=False), [], [])
@@ -44,18 +42,14 @@ class Agent(common.Module):
         latent, action, embed, obs['is_first'], sample)
     feat = self.wm.rssm.get_feat(latent)
     if mode == 'eval':
-      print('policy is evaluating')
       actor = self._task_behavior.actor(feat)
       action = actor.mode()
       noise = self.config.eval_noise
     elif mode == 'explore':
-      print('policy is exploring')
-      # self._expl_behavior.set_obs(obs)
       actor = self._expl_behavior.actor(feat)
       action = actor.sample()
       noise = self.config.expl_noise
     elif mode == 'train':
-      print('policy is training')
       actor = self._task_behavior.actor(feat)
       action = actor.sample()
       noise = self.config.expl_noise
@@ -68,8 +62,6 @@ class Agent(common.Module):
   @tf.function
   def train(self, data, state=None):
     metrics = {}
-    # print('train', data)
-    # grab_reward is in data
     state, outputs, mets = self.wm.train(data, state)
     metrics.update(mets)
     start = outputs['post']
@@ -97,26 +89,7 @@ class Agent(common.Module):
 class WorldModel(common.Module):
 
   def __init__(self, config, obs_space, tfstep):
-    ''' 
-    proprio
-    print(f'WorldModel shapes: {shapes}')
-    print(f'WorldModel config.encoder: {config.encoder}')
-
-    shapes
-    shapes: {'image': (64, 64, 3), 'reward': (), 'is_first': (), 
-    'is_last': (), 'is_terminal': (), 'position': (4,), 'velocity': (3,), 
-    'touch': (2,), 'target_position': (2,), 'dist_to_target': ()}
-
-    config.encoder: 
-    Config:
-    mlp_keys:     .*                    (str)
-    cnn_keys:     $^                    (str)
-    act:          elu                   (str)
-    norm:         none                  (str)
-    cnn_depth:    48                    (int)
-    cnn_kernels:  [4, 4, 4, 4]          (ints)
-    mlp_layers:   [400, 400, 400, 400]  (ints)
-    '''
+    
     shapes = {k: tuple(v.shape) for k, v in obs_space.items()}
     self.config = config
     self.tfstep = tfstep
@@ -175,9 +148,7 @@ class WorldModel(common.Module):
   def imagine(self, policy, start, is_terminal, horizon):
     flatten = lambda x: x.reshape([-1] + list(x.shape[2:]))
     start = {k: flatten(v) for k, v in start.items()}
-    #print('imagine start: ', start)
     start['feat'] = self.rssm.get_feat(start)
-    # print('imagine start: ', start['feat'])
     start['action'] = tf.zeros_like(policy(start['feat']).mode())
     seq = {k: [v] for k, v in start.items()}
     for _ in range(horizon):
@@ -187,7 +158,6 @@ class WorldModel(common.Module):
       for key, value in {**state, 'action': action, 'feat': feat}.items():
         seq[key].append(value)
     seq = {k: tf.stack(v, 0) for k, v in seq.items()}
-    # print('imagine seq: ', seq)
     if 'discount' in self.heads:
       disc = self.heads['discount'](seq['feat']).mean()
       if is_terminal is not None:
@@ -211,13 +181,10 @@ class WorldModel(common.Module):
     obs = obs.copy()
     for key, value in obs.items():
       if key.startswith('log_'):
-        # print('key start with log_ (should be contacts)', key)
-        # print('for vision this is not a problem maybe for proprio')
         continue
       if value.dtype == tf.int32:
         value = value.astype(dtype)
       if value.dtype == tf.uint8:
-        # this is for the image -> normalize to [-0.5, 0.5]
         value = value.astype(dtype) / 255.0 - 0.5
       obs[key] = value
     obs['reward'] = {
@@ -297,8 +264,6 @@ class ActorCritic(common.Module):
         target_pos_reward = target_pos_reward_fn(seq)
 
         # norm of individual rewards
-        #normal_reward, normal_mets1 = self.rewnorm(reward)
-        #grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
         grab_reward, grab_mets1 = self.grab_rewnorm(grab_reward)
         stacking_reward, stacking_mets1 = self.stacking_rewnorm(stacking_reward)
         target_pos_reward, target_pos_mets1 = self.target_pos_rewnorm(target_pos_reward)
@@ -316,11 +281,9 @@ class ActorCritic(common.Module):
             seq['reward'] = grab_reward
         
         # metrics
-        # normal_mets1 = {f'normal_reward_{k}': v for k, v in normal_mets1.items()}
         grab_mets1 = {f'grab_reward_{k}': v for k, v in grab_mets1.items()}
         stacking_mets1 = {f'stacking_reward_{k}': v for k, v in stacking_mets1.items()}
         target_pos_mets1 = {f'target_pos_reward_{k}': v for k, v in target_pos_mets1.items()}
-        # combined_mets1 = {f'combined_reward_{k}': v for k, v in combiner_mets1.items()}
       elif self._mode == 'train':
         # train
         seq['reward'], mets1 = self.rewnorm(reward)
@@ -337,12 +300,11 @@ class ActorCritic(common.Module):
     metrics.update(self.actor_opt(actor_tape, actor_loss, self.actor))
     metrics.update(self.critic_opt(critic_tape, critic_loss, self.critic))
     if self._mode == 'explore':
-      #metrics.update(**grab_mets1, **mets2, **mets3, **mets4)
       metrics.update(**grab_mets1, **stacking_mets1, **target_pos_mets1, **mets2, **mets3, **mets4)
 
     else:
       metrics.update(**mets1, **mets2, **mets3, **mets4)
-    self.update_slow_target()  # Variables exist after first forward pass.
+    self.update_slow_target()
     return metrics
 
   def actor_loss(self, seq, target):
@@ -407,7 +369,6 @@ class ActorCritic(common.Module):
     # Discount:   [d0]  [d1]  [d2]   d3
     # Targets:     t0    t1    t2
     reward = tf.cast(seq['reward'], tf.float32)
-    # grab_reward = tf.cast(seq['grab_reward'], tf.float32)
     disc = tf.cast(seq['discount'], tf.float32)
     value = self._target_critic(seq['feat']).mode()
     # Skipping last time step because it is used for bootstrapping.

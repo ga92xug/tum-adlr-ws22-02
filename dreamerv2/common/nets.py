@@ -181,11 +181,7 @@ class EnsembleRSSM(common.Module):
 
 
 class Encoder(common.Module):
-  '''proprio:
-  encoder: {mlp_keys: '.*', cnn_keys: '$^'}
-  Encoder CNN inputs: []
-  Encoder MLP inputs: ['position', 'velocity', 'touch', 'target_position']
-  '''
+  
   def __init__(
       self, shapes, cnn_keys=r'.*', mlp_keys=r'.*', act='elu', norm='none',
       cnn_depth=48, cnn_kernels=(4, 4, 4, 4), mlp_layers=[400, 400, 400, 400]):
@@ -194,8 +190,7 @@ class Encoder(common.Module):
         k for k, v in shapes.items() if re.match(cnn_keys, k) and len(v) == 3]
     self.mlp_keys = [
         k for k, v in shapes.items() if re.match(mlp_keys, k) and len(v) == 1]
-    print('Encoder CNN inputs:', list(self.cnn_keys))
-    print('Encoder MLP inputs:', list(self.mlp_keys))
+
     self._act = get_act(act)
     self._norm = norm
     self._cnn_depth = cnn_depth
@@ -206,12 +201,6 @@ class Encoder(common.Module):
   def __call__(self, data):
     key, shape = list(self.shapes.items())[0]
     batch_dims = data[key].shape[:-len(shape)]
-    # print('Encoder key:', key)
-    # print('Encoder input shapes:', self.shapes)
-    # print('Encoder batch dims:', batch_dims)
-    #Encoder key: image
-    # Encoder input shapes: {'image': (64, 64, 3), 'reward': (), 'grab_reward': (), 'is_first': (), 'is_last': (), 'is_terminal': (), 'log_contacts': (), 'log_contact_forces': (), 'arm_pos': (8, 2), 'arm_vel': (8,), 'touch': (5,), 'hand_pos': (4,), 'box_pos': (4, 4), 'box_vel': (12,), 'target_pos': (2,)}
-    # Encoder batch dims: (1,)
     data = {
         k: tf.reshape(v, (-1,) + tuple(v.shape)[len(batch_dims):])
         for k, v in data.items()}
@@ -254,8 +243,7 @@ class Decoder(common.Module):
         k for k, v in shapes.items() if re.match(cnn_keys, k) and len(v) == 3]
     self.mlp_keys = [
         k for k, v in shapes.items() if re.match(mlp_keys, k) and len(v) == 1]
-    print('Decoder CNN outputs:', list(self.cnn_keys))
-    print('Decoder MLP outputs:', list(self.mlp_keys))
+    
     self._act = get_act(act)
     self._norm = norm
     self._cnn_depth = cnn_depth

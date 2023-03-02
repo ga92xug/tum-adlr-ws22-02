@@ -41,7 +41,6 @@ def main():
   config = common.Flags(config).parse(remaining)
 
   logdir = pathlib.Path(config.logdir).expanduser()
-  # easier download from gcloud
   logdir_downloads = pathlib.Path(config.logdir + "/downloads").expanduser()
   logdir_downloads.mkdir(parents=True, exist_ok=True)
   logdir.mkdir(parents=True, exist_ok=True)
@@ -49,7 +48,6 @@ def main():
   print(config, '\n')
   print('Logdir', logdir)
 
-  # deque over last 10 episodes(len(episod)=1000)
   MAX_SIZE = 10
   global queue, learning_phase
   change_config = common.Once()
@@ -170,7 +168,6 @@ def main():
           print('Activating hover now')
           # save pretrained model
           logdir = pathlib.Path(config.logdir).expanduser()
-          # easier download from gcloud
           logdir_pretrained = pathlib.Path(config.logdir + "/pretrained_grab_100thres").expanduser()
           logdir_pretrained.mkdir(parents=True, exist_ok=True)
           agnt.save(logdir_pretrained / 'variables.pkl')
@@ -287,8 +284,6 @@ def main():
   train_driver.on_step(train_step)
 
   while step < config.steps:
-    #print(f'Step {step.value}')
-    #print('should_expl', should_expl(step), should_expl._until)
     [env.set_current_step(step.value) for env in train_envs]
     [env.set_current_step(step.value) for env in eval_envs]
     [env.set_learning_phase(learning_phase) for env in train_envs]
@@ -303,14 +298,11 @@ def main():
         print('grab_reward_weight:', config.grab_reward_weight, 'stacking_reward_weight', config.stacking_reward_weight)
 
     elif step >= config.start_external_reward and False:
-      # linear fade-in from grab to stacking reward
       if config.only_stacking:
           config = config.update({
               'reward_weight': 0.0,
-              'grab_reward_weight': 0.0,#(1.0 - (step.value - config.start_external_reward)\
-                                    #/ (config.steps - config.start_external_reward)),
-              'stacking_reward_weight': 1.0,#(0.0 + (step.value - config.start_external_reward)\
-                                    #/ (config.steps - config.start_external_reward))
+              'grab_reward_weight': 0.0,
+              'stacking_reward_weight': 1.0,
               'target_pos_reward_weight': 0.0,
             })
       elif config.only_target:
@@ -321,6 +313,7 @@ def main():
               'target_pos_reward_weight': 1.0,
               })
       else:
+          # linear fade-in from grabing to stacking reward
           config = config.update({
               'reward_weight': 1.0,
               'grab_reward_weight': (1.0 - (step.value - config.start_external_reward)\
@@ -335,10 +328,6 @@ def main():
     logger.add(agnt.report(next(eval_dataset)), prefix='eval')
     eval_driver(eval_policy, episodes=config.eval_eps)
     print('Start training.')
-    #for i in range(10):
-    #  print('Train driver', i)
-    #  print('queue', queue, 'learning_phase', learning_phase)
-    #  train_driver(train_policy, steps=config.eval_every)
     train_driver(train_policy, steps=config.eval_every)
     agnt.save(logdir / 'variables.pkl')
     with open(pathlib.Path(logdir / 'learn_lift.pkl'), 'wb') as f:
