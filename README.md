@@ -1,4 +1,5 @@
 # Learning world models by self-supervised exploration (tum-adlr-ws22-02)
+<p align="center"><img src="report/gifs/learn2grab_without_drop.gif" width="100px"/></p>
 This project introduces an adapted version of Plan2Explore, where an agent builds a world model trained in a self-supervised manner.
 
 ## todo
