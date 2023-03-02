@@ -1,5 +1,5 @@
 # Learning world models by self-supervised exploration (tum-adlr-ws22-02)
-<p align="center"><img src="report/gifs/learn2grab_without_drop.gif" width="100px"/></p>
+<p align="center"><img src="report/gifs/learn2grab_without_drop.gif" width="400px"/></p>
 This project introduces an adapted version of Plan2Explore, where an agent builds a world model trained in a self-supervised manner.
 
 ## todo
@@ -20,5 +20,13 @@ For the setup and dataset preparation please check the DreamerV2 [github page](h
 ## Results
 - Proprioceptive information: we added sensory information for the fingers to the model input.
 - Intrinsic motivation: by using some environment specific clues we introduce a much richer exploration signal that should help the agent to explore the environment more efficiently and to built a better world model. For that we introduce the biologically inspired Learn2Grab and Stacking reward.
+
+Learn2Grab results:
+<p align="center"><img src="report/images/learn2grab_ablation_study_with_proprio.png" width="400px"/></p>
+<p align="center"><img src="report/images/contacts.png" width="400px"/></p>
+
+Task performance:
+<p align="center"><img src="report/images/results.png" width="400px"/></p>
+
 
 
