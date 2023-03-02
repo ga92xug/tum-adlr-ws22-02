@@ -28,8 +28,8 @@ For the setup and dataset preparation please check the DreamerV2 [github page](h
 <p align="center"><img src="report/images/results.png" height="200px"/></p>
 
 ## Fails
-These are some of the more interesting ways how the agent solved the respective subtasks Learn2Grab, Learn2Grab and Stacking ordered from left to right.
-<p align="center"> <img src="report/gifs/fail1.gif" height="200px"/> <img src="report/gifs/fail2.gif" height="200px"/> <img src="report/gifs/fail3.gif" height="200px"/> <img src="report/gifs/stacking_rew_st4.gif" height=200px/> <img src="report/gifs/stacking_rew_st4.gif" height=200px/> </p>
+These are some of the more interesting ways how the agent solved the respective subtasks Learn2Grab, Learn2Grab, Stacking, Stacking, and Push2Target ordered from top left to bottom right.
+<p align="center"> <img src="report/gifs/fail1.gif" height="200px"/> <img src="report/gifs/fail2.gif" height="200px"/> <img src="report/gifs/fail3.gif" height="200px"/> <img src="report/gifs/stacking_rew_st4.gif" height=200px/> <img src="report/gifs/target_r_stacker_2_contact.gif" height=200px/> </p>
 
 
 
