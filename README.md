@@ -2,14 +2,11 @@
 <p align="center"><img src="report/gifs/learn2grab_without_drop.gif" width="250px"/></p>
 This project introduces an adapted version of Plan2Explore, where an agent builds a world model trained in a self-supervised manner.
 
-## todo
-- update paper
-
 ## Introduction
 The prevailing approach to sensorimotor control involves training an agent on specific tasks using rewards in reinforcement learning. However, this method often proves to be inefficient as each task requires a significant amount of task-specific environment interaction to solve from scratch.
 
 For additional details, please see our paper:  
-"[Learning world models by self-supervised exploration](https://github.com/flo-stilz/3D-Visual-Grounding-with-Transformers/blob/lang-det/paper%20%26%20figures/final_submission_3D_visual_grounding_with_transformers.pdf)"  
+"[Learning world models by self-supervised exploration](https://github.com/ga92xug/tum-adlr-ws22-02/edit/main/report/final_report_02_pdf.pdf)"  
 by [Stefan Frisch](https://github.com/ga92xug) and [Florian Stilz](https://github.com/flo-stilz/)
 from the [Technical University of Munich](https://www.tum.de/en/). 
 
